@@ -19,12 +19,12 @@ Bring [SmartMemory](https://smartmemory.ai)'s entity extraction, knowledge graph
 ### Via BRAT (recommended while we are pre-directory)
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from the community directory.
-2. Open BRAT settings → "Add Beta Plugin" → paste `smartmemory/smartmemory-obsidian` → Add.
+2. Open BRAT settings → "Add Beta Plugin" → paste `smartmemory/smart-memory-obsidian` → Add.
 3. Enable "SmartMemory" in Settings → Community plugins.
 
 ### Manual
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/smartmemory/smartmemory-obsidian/releases/latest).
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/smartmemory/smart-memory-obsidian/releases/latest).
 2. Drop them into `<your-vault>/.obsidian/plugins/smartmemory/`.
 3. Enable "SmartMemory" in Settings → Community plugins.
 
@@ -73,7 +73,7 @@ API key can also be supplied via the `SMARTMEMORY_API_KEY` environment variable,
 
 ## Issues & feedback
 
-[github.com/smartmemory/smartmemory-obsidian/issues](https://github.com/smartmemory/smartmemory-obsidian/issues)
+[github.com/smartmemory/smart-memory-obsidian/issues](https://github.com/smartmemory/smart-memory-obsidian/issues)
 
 ## License
 
