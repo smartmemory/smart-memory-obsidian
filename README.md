@@ -71,6 +71,71 @@ API key can also be supplied via the `SMARTMEMORY_API_KEY` environment variable,
 - Obsidian **1.5.0** and above.
 - Desktop and mobile (the plugin sets `isDesktopOnly: false`; mobile is supported but the graph pane is bandwidth-heavier than the rest).
 
+## Build from source
+
+Use Node.js 22 or newer and npm. The default layout has this plugin,
+`smart-memory-sdk-js`, and `smart-memory-graph` as sibling git checkouts.
+Install dependencies in the SDK and graph first, then in this plugin:
+
+```sh
+(cd ../smart-memory-sdk-js && npm install --ignore-scripts --no-package-lock)
+(cd ../smart-memory-graph && npm install --ignore-scripts --no-package-lock)
+npm install --ignore-scripts --no-package-lock
+npm run build
+```
+
+For an isolated plugin worktree, set `SMARTMEMORY_SDK_PATH` to the absolute
+SDK checkout path. npm's local dependency installation also needs explicit paths
+when the sibling checkouts are elsewhere:
+
+```sh
+export SMARTMEMORY_SDK_PATH=/absolute/path/to/smart-memory-sdk-js
+export SMARTMEMORY_BUILD_SCRATCH=/absolute/path/to/task/scratch
+npm install --ignore-scripts --no-package-lock --no-save \
+  "smartmemory-sdk-js@$SMARTMEMORY_SDK_PATH" \
+  "@smartmemory/graph@/absolute/path/to/smart-memory-graph"
+npm run build
+```
+
+Every production build copies the SDK's tracked files and non-ignored untracked
+files, plus its installed dependencies, to a disposable directory under
+`SMARTMEMORY_BUILD_SCRATCH` (default: `.build/` in this plugin). It runs the SDK's
+`npm run build` there before bundling. The input SDK checkout and its `dist/`
+remain untouched. Existing SDK `dist/` is never copied or used. Both legacy
+`smartmemory-sdk-js` imports and scoped `@smartmemory/sdk-js` imports use the
+fresh build. The disposable copy is removed after success or failure.
+
+Missing SDK checkout, git metadata, installed SDK dependencies, failed SDK
+compilation, or missing SDK dist exports stop the build with a diagnostic.
+The previous `main.js` is removed when a production build starts, so a failed
+build cannot leave an older bundle to publish.
+
+Before preparing a release, run the build and check its first line:
+
+```sh
+npm run build
+head -n 1 main.js
+# // SmartMemory SDK git=<full commit SHA> dirty=false
+```
+
+The header records the SDK commit and whether tracked edits or non-ignored
+untracked files were present. Use a clean SDK checkout (`dirty=false`) for
+release provenance. Retain this header in the release's `main.js`, alongside
+`manifest.json` and `styles.css`. Building does not change the plugin version
+or publish a release. Dependency versions and the graph checkout still need to
+be held constant for byte-identical builds.
+
+Run the focused build regression with the same environment variables:
+
+```sh
+npm test -- tests/sdk-build.test.ts
+```
+
+It uses the real SDK/compiler in scratch copies to check stale dist replacement,
+clean and dirty provenance, missing checkout, and SDK compilation failure.
+`npm run dev` retains the existing local dependency watch workflow. Production
+SDK rebuilding and provenance apply to `npm run build`.
+
 ## Issues & feedback
 
 [github.com/smartmemory/smart-memory-obsidian/issues](https://github.com/smartmemory/smart-memory-obsidian/issues)

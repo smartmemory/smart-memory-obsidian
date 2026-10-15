@@ -4,6 +4,10 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+### Fixed
+- Production builds now rebuild an isolated SDK source copy before bundling, fail on SDK setup or compilation errors, and record the SDK commit and dirty flag in `main.js` (PLUGIN-REPRO-BUILD-1).
+- Legacy plugin and scoped graph-library SDK imports now share the freshly compiled SDK. Builds accept `SMARTMEMORY_SDK_PATH` and `SMARTMEMORY_BUILD_SCRATCH`, preserving the input checkout and ignoring its old dist.
+
 ## [0.2.17] - 2026-10-15: Graph keyboard delete fix (GRAPH-KEY-DELETE-1)
 
 ### Fixed

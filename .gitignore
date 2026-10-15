@@ -17,3 +17,6 @@ tests/e2e-electron/fixture-vault/.obsidian/appearance.json
 
 # session flush scratch (per-session, not shared state)
 session-context*
+
+# Disposable SDK build snapshots
+.build/

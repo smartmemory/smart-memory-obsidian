@@ -1,10 +1,11 @@
 import esbuild from 'esbuild';
 import process from 'process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, rmSync } from 'fs';
 import { resolve } from 'path';
 import postcss from 'postcss';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
+import { buildSdk } from './scripts/build-sdk.mjs';
 
 // Force single instances of React/ReactDOM/Cytoscape across the bundle.
 // @smartmemory/graph is a file: dep with its own nested node_modules,
@@ -22,6 +23,8 @@ const reactDomDir = resolve('./node_modules/react-dom');
 const cytoscapeDir = resolve('./node_modules/@smartmemory/graph/node_modules/cytoscape');
 
 const prod = process.argv[2] === 'production';
+// A failed release build must not leave an older main.js looking publishable.
+if (prod) rmSync('main.js', { force: true });
 
 // Inject the manifest version at build time so main.ts can reference
 // __SMARTMEMORY_VERSION__ in code that runs during onload(). Without this
@@ -52,37 +55,52 @@ async function buildGraphCss() {
 }
 
 // ─── JS bundle ───────────────────────────────────────────────────────────────
-const context = await esbuild.context({
-	entryPoints: ['src/main.ts'],
-	bundle: true,
-	external: ['obsidian', 'electron', '@codemirror/autocomplete', '@codemirror/collab', '@codemirror/commands', '@codemirror/language', '@codemirror/lint', '@codemirror/search', '@codemirror/state', '@codemirror/view', '@lezer/common', '@lezer/highlight', '@lezer/lr'],
-	format: 'cjs',
-	target: 'es2018',
-	logLevel: 'info',
-	sourcemap: prod ? false : 'inline',
-	treeShaking: true,
-	outfile: 'main.js',
-	minify: prod,
-	loader: { '.jsx': 'jsx' },
-	jsx: 'automatic',
-	alias: {
-		'react': reactDir,
-		'react-dom': reactDomDir,
-		'react-dom/client': reactDomDir + '/client.js',
-		'react/jsx-runtime': reactDir + '/jsx-runtime.js',
-		'cytoscape': cytoscapeDir,
-	},
-	define: {
-		__SMARTMEMORY_VERSION__: JSON.stringify(manifest.version),
-		'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
-	},
-});
+let context;
+let sdk;
+try {
+	sdk = prod ? buildSdk(process.cwd()) : null;
+	context = await esbuild.context({
+		entryPoints: ['src/main.ts'],
+		bundle: true,
+		external: ['obsidian', 'electron', '@codemirror/autocomplete', '@codemirror/collab', '@codemirror/commands', '@codemirror/language', '@codemirror/lint', '@codemirror/search', '@codemirror/state', '@codemirror/view', '@lezer/common', '@lezer/highlight', '@lezer/lr'],
+		format: 'cjs',
+		target: 'es2018',
+		logLevel: 'info',
+		sourcemap: prod ? false : 'inline',
+		treeShaking: true,
+		outfile: 'main.js',
+		minify: prod,
+		loader: { '.jsx': 'jsx' },
+		jsx: 'automatic',
+		banner: sdk ? { js: sdk.banner } : undefined,
+		alias: {
+			...sdk?.alias,
+			'react': reactDir,
+			'react-dom': reactDomDir,
+			'react-dom/client': reactDomDir + '/client.js',
+			'react/jsx-runtime': reactDir + '/jsx-runtime.js',
+			'cytoscape': cytoscapeDir,
+		},
+		define: {
+			__SMARTMEMORY_VERSION__: JSON.stringify(manifest.version),
+			'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
+		},
+	});
 
-await buildGraphCss();
+	await buildGraphCss();
 
-if (prod) {
-	await context.rebuild();
-	process.exit(0);
-} else {
-	await context.watch();
+	if (prod) {
+		await context.rebuild();
+	} else {
+		await context.watch();
+	}
+
+} finally {
+	if (prod) {
+		try {
+			if (context) await context.dispose();
+		} finally {
+			sdk?.cleanup();
+		}
+	}
 }
