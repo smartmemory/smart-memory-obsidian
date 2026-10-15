@@ -2,6 +2,7 @@ import { MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import type SmartMemoryPlugin from '../main';
 import { readSmartMemoryId } from '../bridge/frontmatter';
 import { LineageModal } from '../views/lineage-modal';
+import { isPathExcluded } from '../util/exclusions';
 
 const BANNER_CLASS = 'smartmemory-contradiction-banner';
 
@@ -59,6 +60,10 @@ export class ContradictionBanner {
 		}
 
 		const file = view.file;
+		if (isPathExcluded(file.path, this.plugin.settings, 'contradiction-banner')) {
+			this.clearAllBanners();
+			return;
+		}
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(file.path) ??
 			readSmartMemoryId(this.plugin.app, file, this.plugin.settings.workspaceId);

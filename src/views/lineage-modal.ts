@@ -1,5 +1,6 @@
 import { App, Modal, TFile, Notice } from 'obsidian';
 import type SmartMemoryPlugin from '../main';
+import { isPathExcluded } from '../util/exclusions';
 
 export class LineageModal extends Modal {
 	private plugin: SmartMemoryPlugin;
@@ -12,6 +13,8 @@ export class LineageModal extends Modal {
 	}
 
 	async onOpen(): Promise<void> {
+		const path = this.plugin.mappingStore.getFilePath(this.itemId);
+		if (path && isPathExcluded(path, this.plugin.settings, 'lineage-modal')) return;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('smartmemory-lineage-modal');

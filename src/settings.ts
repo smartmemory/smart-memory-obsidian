@@ -194,7 +194,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Exclude folders')
-			.setDesc('Comma-separated path prefixes to exclude from ingest (e.g. templates/, .obsidian/)')
+			.setDesc('Comma-separated folders excluded from all note sends and edits (e.g. templates/, .obsidian/). Case-insensitive, including subfolders.')
 			.addText(text => text
 				.setValue(this.plugin.settings.excludeFolders.join(','))
 				.onChange((value) => {

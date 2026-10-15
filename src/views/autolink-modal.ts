@@ -1,6 +1,8 @@
 import { App, Modal, TFile, Notice } from 'obsidian';
 import type { LinkProposal } from '../bridge/wikilinks';
 import { applyLinkInsertions, typedEdgesFromLinkProposals } from '../bridge/wikilinks';
+import type SmartMemoryPlugin from '../main';
+import { isPathExcluded } from '../util/exclusions';
 
 export class AutolinkModal extends Modal {
 	private file: TFile;
@@ -8,7 +10,7 @@ export class AutolinkModal extends Modal {
 	private proposals: LinkProposal[];
 	private accepted: Set<number> = new Set();
 
-	constructor(app: App, file: TFile, originalText: string, proposals: LinkProposal[]) {
+	constructor(app: App, file: TFile, originalText: string, proposals: LinkProposal[], private plugin: SmartMemoryPlugin) {
 		super(app);
 		this.file = file;
 		this.originalText = originalText;
@@ -80,6 +82,10 @@ export class AutolinkModal extends Modal {
 	}
 
 	private async applyAndClose(): Promise<void> {
+		if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) {
+			this.close();
+			return;
+		}
 		const accepted = this.proposals.filter((_, i) => this.accepted.has(i));
 		if (accepted.length === 0) {
 			this.close();
@@ -99,7 +105,9 @@ export class AutolinkModal extends Modal {
 			}
 
 			const newText = applyLinkInsertions(this.originalText, accepted);
+			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) return;
 			await this.app.vault.modify(this.file, newText);
+			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) return;
 			const newEdges = typedEdgesFromLinkProposals(accepted);
 			try {
 				await this.app.fileManager.processFrontMatter(this.file, (fm) => {

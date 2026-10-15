@@ -6,6 +6,7 @@ import { LINEAGE_PANEL_TYPE } from '../views/lineage-panel';
 import { SUPERSESSIONS_PANEL_TYPE } from '../views/supersessions-panel';
 import { DECISIONS_PANEL_TYPE } from '../views/decisions-panel';
 import { RecallModal } from '../views/recall-modal';
+import { isPathExcluded } from '../util/exclusions';
 
 async function openInRightSidebar(plugin: SmartMemoryPlugin, viewType: string): Promise<void> {
 	const { workspace } = plugin.app;
@@ -64,6 +65,7 @@ export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 			// null when focus is in a plugin sidebar, which made the hotkey
 			// feel broken whenever the user had just clicked a sidebar.
 			const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+			let source = view?.file ?? plugin.app.workspace.getActiveFile();
 			let query = view?.editor.getSelection() ?? '';
 			if (!query) {
 				const file = plugin.app.workspace.getActiveFile();
@@ -71,6 +73,8 @@ export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 					new Notice('SmartMemory: no active note');
 					return;
 				}
+				source = file;
+				if (isPathExcluded(file.path, plugin.settings, 'recall-query')) return;
 				try {
 					query = await plugin.app.vault.read(file);
 				} catch {
@@ -82,7 +86,8 @@ export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 				new Notice('SmartMemory: nothing to recall');
 				return;
 			}
-			new RecallModal(plugin.app, plugin, query).open();
+			if (source && isPathExcluded(source.path, plugin.settings, 'recall-query')) return;
+			new RecallModal(plugin.app, plugin, query, source ?? undefined).open();
 		},
 	});
 }

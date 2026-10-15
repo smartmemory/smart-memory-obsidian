@@ -49,7 +49,7 @@ export class SuggestionEngine {
 		this.settings = settings;
 	}
 
-	queryDebounced(text: string): void {
+	queryDebounced(text: string, canQuery: () => boolean = () => true): void {
 		if (!this.settings.inlineSuggestionsEnabled) return;
 		if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
 
@@ -68,6 +68,7 @@ export class SuggestionEngine {
 		const delay = frequencyToDelayMs(this.settings.suggestionFrequency);
 		this.debounceTimer = setTimeout(() => {
 			this.debounceTimer = null;
+			if (!canQuery()) return;
 			void this.runQuery(trimmed);
 		}, delay);
 	}

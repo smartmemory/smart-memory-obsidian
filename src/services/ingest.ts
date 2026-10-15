@@ -4,6 +4,7 @@ import type { MappingStore } from '../bridge/mapping-store';
 import type { SmartMemorySettings } from '../types';
 import { writeSmartMemoryFrontmatter, readSmartMemoryId } from '../bridge/frontmatter';
 import { parseOkf, type OkfDocument } from '../bridge/okf';
+import { isPathExcluded } from '../util/exclusions';
 
 export type IngestEvent =
 	| { type: 'ingest-start'; path: string }
@@ -110,10 +111,13 @@ export class IngestService {
 	}
 
 	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string }> {
+		const excluded = () => isPathExcluded(file.path, this.settings, 'ingest-file');
+		if (excluded()) return { itemId: '' };
 		this.emit({ type: 'ingest-start', path: file.path });
 
 		try {
 			const raw = await this.app.vault.read(file);
+			if (excluded()) return { itemId: '' };
 			// Parse OKF rather than discarding frontmatter wholesale. The body is
 			// still the ingest text, while native fields, extension data, and
 			// preserved producer keys travel in structured context.
@@ -154,6 +158,7 @@ export class IngestService {
 				let remoteMissing = false;
 				try {
 					const remote: any = await this.client.memories.get(existingId);
+					if (excluded()) return { itemId: '' };
 					if (remote?.item_id) {
 						this.emit({ type: 'ingest-complete', path: file.path, itemId: existingId });
 						return { itemId: existingId };
@@ -170,6 +175,7 @@ export class IngestService {
 					}
 				}
 				if (remoteMissing) {
+					if (excluded()) return { itemId: '' };
 					this.store.handleDelete(file.path);
 					const result = await this.client.memories.ingest(content, {
 						context: ingestContext(file.path, okf),
@@ -210,10 +216,12 @@ export class IngestService {
 					this.store.handleDelete(file.path);
 				}
 				const context = ingestContext(file.path, okf);
+				if (excluded()) return { itemId: '' };
 				const result = await this.client.memories.ingest(content, { context });
 				itemId = result.item_id;
 			}
 
+			if (excluded()) return { itemId: '' };
 			this.store.set(file.path, itemId);
 			this.store.setContentHash(file.path, newHash);
 			this.notifyMappingsChanged();
@@ -265,6 +273,8 @@ export class IngestService {
 	 * is stale and we skip the write.
 	 */
 	async enrichFile(file: TFile): Promise<void> {
+		const excluded = () => isPathExcluded(file.path, this.settings, 'enrichment');
+		if (excluded()) return;
 		const itemId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, this.settings.workspaceId);
 		if (!itemId) {
 			console.warn('[smartmemory] enrichFile skipped — no itemId for', file.path);
@@ -299,6 +309,7 @@ export class IngestService {
 			if (this.pollDelayMs > 0) {
 				await sleep(this.pollDelayMs);
 			}
+			if (excluded()) return;
 
 			let neighbors: any[] = [];
 			try {
@@ -325,6 +336,7 @@ export class IngestService {
 			// zero entities). We treat the first non-empty neighbors response
 			// as terminal; otherwise keep polling.
 			if (neighbors.length > 0) {
+				if (excluded()) return;
 				// Stale check: did a newer ingest replace our mapping?
 				const currentMapping = this.store.getMemoryId(file.path);
 				if (currentMapping && currentMapping !== itemId) {
@@ -384,8 +396,8 @@ export class IngestService {
 	async ingestFolder(files: TFile[]): Promise<BatchResult> {
 		this.batchInProgress = true;
 		try {
-			const queue = files.filter(f => !this.isExcluded(f.path));
-			const skipped = files.length - queue.length;
+			const queue = files.filter(f => !isPathExcluded(f.path, this.settings, 'folder-ingest'));
+			let skipped = files.length - queue.length;
 			let succeeded = 0;
 			let failed = 0;
 			let processed = 0;
@@ -400,8 +412,9 @@ export class IngestService {
 					const idx = nextIndex++;
 					const file = queue[idx];
 					try {
-						await this.ingestFile(file, { skipEnrichment: true });
-						succeeded++;
+						const result = await this.ingestFile(file, { skipEnrichment: true });
+						if (result.itemId) succeeded++;
+						else skipped++;
 					} catch {
 						failed++;
 					}
@@ -423,18 +436,6 @@ export class IngestService {
 
 	updateSettings(settings: SmartMemorySettings): void {
 		this.settings = settings;
-	}
-
-	private isExcluded(path: string): boolean {
-		const excludes = this.settings.excludeFolders || [];
-		for (const pattern of excludes) {
-			// Simple prefix match for folder patterns ending in /
-			const normalized = pattern.endsWith('/') ? pattern : pattern + '/';
-			if (path.startsWith(normalized) || path.startsWith(pattern)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private emit(event: IngestEvent): void {

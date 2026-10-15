@@ -5,6 +5,7 @@ import { AutolinkModal } from '../views/autolink-modal';
 import { readSmartMemoryId } from '../bridge/frontmatter';
 import { toMarkdownLinkTarget } from '../util/wikilink-path';
 import { entityNeighbors } from '../bridge/entity-edges';
+import { isPathExcluded } from '../util/exclusions';
 
 export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
@@ -16,6 +17,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 				new Notice('SmartMemory: no active note');
 				return;
 			}
+			if (isPathExcluded(file.path, plugin.settings, 'autolink-command')) return;
 			const client = plugin.client;
 			if (!client) {
 				new Notice('SmartMemory: not connected');
@@ -43,6 +45,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 					.filter((e: any) => e.name);
 
 				if (entities.length === 0) {
+					if (isPathExcluded(file.path, plugin.settings, 'autolink-command')) return;
 					const neighborsResp: any = await (client.memories as any).getNeighbors(itemId);
 					entities = entityNeighbors(neighborsResp?.neighbors || [])
 						.map(n => ({
@@ -116,7 +119,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 				return;
 			}
 
-			new AutolinkModal(plugin.app, file, text, proposals).open();
+			new AutolinkModal(plugin.app, file, text, proposals, plugin).open();
 		},
 	});
 }

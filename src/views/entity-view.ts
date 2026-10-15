@@ -3,6 +3,7 @@ import type SmartMemoryPlugin from '../main';
 import { readSmartMemoryId } from '../bridge/frontmatter';
 import { RECALL_EXCLUDE_ORIGIN_PREFIXES } from '../services/search';
 import { entityNeighbors } from '../bridge/entity-edges';
+import { isPathExcluded } from '../util/exclusions';
 
 export const ENTITY_VIEW_TYPE = 'smartmemory-entities';
 
@@ -46,6 +47,7 @@ export class EntityView extends ItemView {
 			return;
 		}
 
+		if (isPathExcluded(target.path, this.plugin.settings, 'entity-sidebar')) return;
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(target.path) ??
 			readSmartMemoryId(this.plugin.app, target, this.plugin.settings.workspaceId);
@@ -78,6 +80,7 @@ export class EntityView extends ItemView {
 			// and `item.entities` returns null. Fall back to /neighbors so the
 			// sidebar keeps working past the post-ingest window.
 			if (entities.length === 0) {
+				if (isPathExcluded(target.path, this.plugin.settings, 'entity-sidebar')) return;
 				const neighborsResp: any = await (client.memories as any).getNeighbors(itemId);
 				if (seq !== this.refreshSeq) return;
 				entities = entityNeighbors(neighborsResp?.neighbors || [])
@@ -121,6 +124,9 @@ export class EntityView extends ItemView {
 		currentNoteItemId: string,
 		root: HTMLElement,
 	): Promise<void> {
+		if (this.currentFile && isPathExcluded(
+			this.currentFile.path, this.plugin.settings, entity.entityId ? 'entity-lookup-graph' : 'entity-lookup-search',
+		)) return;
 		// Remove any previous cross-note results section
 		root.querySelectorAll('.smartmemory-entity-cross-results').forEach(el => el.remove());
 

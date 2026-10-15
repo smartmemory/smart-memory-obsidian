@@ -4,18 +4,20 @@ import type { SearchResult } from '../services/search';
 import { RECALL_EXCLUDE_ORIGIN_PREFIXES } from '../services/search';
 import { toWikilinkTarget } from '../util/wikilink-path';
 import { writeSmartMemoryFrontmatter } from '../bridge/frontmatter';
+import { isPathExcluded } from '../util/exclusions';
 
 export class RecallModal extends Modal {
 	private plugin: SmartMemoryPlugin;
 	private query: string;
 
-	constructor(app: App, plugin: SmartMemoryPlugin, query: string) {
+	constructor(app: App, plugin: SmartMemoryPlugin, query: string, private sourceFile?: TFile) {
 		super(app);
 		this.plugin = plugin;
 		this.query = query;
 	}
 
 	async onOpen(): Promise<void> {
+		if (this.sourceFile && isPathExcluded(this.sourceFile.path, this.plugin.settings, 'recall-query')) return;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('smartmemory-recall-modal');
@@ -117,6 +119,7 @@ export class RecallModal extends Modal {
 			new Notice('SmartMemory: open a note first to insert links');
 			return;
 		}
+		if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'recall-insert-link')) return;
 		view.editor.replaceSelection(`[[${this.wikilinkTarget(result)}]]`);
 	}
 
@@ -144,11 +147,13 @@ export class RecallModal extends Modal {
 			path = `SmartMemory Imports/${safeTitle} (${i}).md`;
 			i++;
 		}
+		if (isPathExcluded(path, this.plugin.settings, 'recall-import-note')) return;
 		try {
 			const folder = 'SmartMemory Imports';
 			if (!this.app.vault.getAbstractFileByPath(folder)) {
 				await this.app.vault.createFolder(folder);
 			}
+			if (isPathExcluded(path, this.plugin.settings, 'recall-import-note')) return;
 			const file = await this.app.vault.create(path, result.content);
 			// Persist the note↔memory link so it survives a reload. The mapping
 			// store alone is in-memory until saveMappings() flushes it to

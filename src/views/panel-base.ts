@@ -19,6 +19,7 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
 import type SmartMemoryPlugin from '../main';
 import { readSmartMemoryId } from '../bridge/frontmatter';
+import { isPathExcluded } from '../util/exclusions';
 
 export abstract class SmartMemoryPanelBase extends ItemView {
 	protected plugin: SmartMemoryPlugin;
@@ -85,6 +86,7 @@ export abstract class SmartMemoryPanelBase extends ItemView {
 			return;
 		}
 
+		if (isPathExcluded(target.path, this.plugin.settings, `${this.getViewType()}-sidebar`)) return;
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(target.path) ??
 			readSmartMemoryId(this.plugin.app, target, this.plugin.settings.workspaceId);

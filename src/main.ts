@@ -29,6 +29,7 @@ import { VaultEvents } from './services/vault-events';
 import { OnboardingModal, showFirstIngestTour } from './views/onboarding-modal';
 import { DEFAULT_SETTINGS, EMPTY_MAPPINGS, SmartMemorySettings, PluginData } from './types';
 import { UPGRADE_URL } from './util/quota-errors';
+import { isPathExcluded } from './util/exclusions';
 
 export default class SmartMemoryPlugin extends Plugin {
 	settings: SmartMemorySettings = DEFAULT_SETTINGS;
@@ -519,6 +520,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		const files = this.app.vault.getMarkdownFiles();
 		let changed = 0;
 		for (const file of files) {
+			if (isPathExcluded(file.path, this.settings, 'mapping-backfill')) continue;
 			const id = readSmartMemoryId(this.app, file, this.settings.workspaceId);
 			if (!id) continue;
 			const known = this.mappingStore.getMemoryId(file.path);
@@ -539,6 +541,7 @@ export default class SmartMemoryPlugin extends Plugin {
 
 	private async migrateLegacyVaultFrontmatter(): Promise<void> {
 		for (const file of this.app.vault.getMarkdownFiles()) {
+			if (isPathExcluded(file.path, this.settings, 'startup-migration')) continue;
 			const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
 			if (!fm || ![
 				'smartmemory_id',
@@ -639,9 +642,10 @@ export default class SmartMemoryPlugin extends Plugin {
 		const files = this.app.vault.getMarkdownFiles();
 		const { clearSmartMemoryFrontmatter } = await import('./bridge/frontmatter');
 		for (const f of files) {
+			if (isPathExcluded(f.path, this.settings, 'purge-frontmatter-clear')) continue;
 			const id = this.mappingStore.getMemoryId(f.path);
 			if (id) this.mappingStore.handleDelete(f.path);
-			await clearSmartMemoryFrontmatter(this.app, f);
+			await clearSmartMemoryFrontmatter(this.app, f, this.settings);
 		}
 		await this.saveMappings();
 

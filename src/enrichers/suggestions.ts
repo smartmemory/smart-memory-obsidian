@@ -3,6 +3,7 @@ import type SmartMemoryPlugin from '../main';
 import type { SearchResult } from '../services/search';
 import { SuggestionEngine } from '../services/suggestions';
 import { toWikilinkTarget } from '../util/wikilink-path';
+import { isPathExcluded } from '../util/exclusions';
 
 const WIDGET_CLASS = 'smartmemory-suggestion-widget';
 
@@ -39,8 +40,15 @@ export class InlineSuggestions {
 
 				const view = info as MarkdownView;
 				if (!view?.editor) return;
+				const source = view.file;
+				if (source && isPathExcluded(source.path, this.plugin.settings, 'inline-suggestions')) {
+					this.engine?.cancel();
+					this.clearWidget();
+					return;
+				}
 				const paragraph = currentParagraph(view);
-				this.engine?.queryDebounced(paragraph);
+				this.engine?.queryDebounced(paragraph, () =>
+					!source || !isPathExcluded(source.path, this.plugin.settings, 'inline-suggestions'));
 			})
 		);
 
@@ -94,6 +102,7 @@ export class InlineSuggestions {
 			});
 			link.addEventListener('click', () => {
 				if (!filePath) return;
+				if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'suggestion-insert-link')) return;
 				const target = toWikilinkTarget(filePath);
 				view.editor.replaceSelection(`[[${target}]]`);
 				this.clearWidget();

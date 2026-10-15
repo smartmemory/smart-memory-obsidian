@@ -157,6 +157,12 @@ export const MarkdownView = class {
 export class Modal {
 	app: any;
 	contentEl: any;
+	constructor(app: any) {
+		this.app = app;
+		this.contentEl = document.createElement('div');
+	}
+	open(): void { void (this as any).onOpen?.(); }
+	close(): void { (this as any).onClose?.(); }
 }
 
 export class TAbstractFile {

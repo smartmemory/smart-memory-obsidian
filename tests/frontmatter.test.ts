@@ -220,7 +220,7 @@ describe('OKF frontmatter helpers', () => {
 				resource: 'smartmemory://team-a/item-1', type: 'semantic', tags: ['keep'],
 				smartmemory: { edges: [] }, smartmemory_id: 'legacy', user_field: 'keep me',
 			});
-			await clearSmartMemoryFrontmatter(mockApp, mockFile);
+			await clearSmartMemoryFrontmatter(mockApp, mockFile, SETTINGS);
 			expect(frontmatter).toEqual({ type: 'semantic', tags: ['keep'], user_field: 'keep me' });
 		});
 	});

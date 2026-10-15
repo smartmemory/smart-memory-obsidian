@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import type { SmartMemorySettings } from '../types';
 import { buildResource, parseResource } from './okf';
+import { isPathExcluded } from '../util/exclusions';
 
 export interface EnrichmentData {
 	id: string;
@@ -37,6 +38,7 @@ export async function writeSmartMemoryFrontmatter(
 	data: EnrichmentData,
 	settings: SmartMemorySettings,
 ): Promise<{ ok: true } | { ok: false; error: Error }> {
+	if (isPathExcluded(file.path, settings, 'frontmatter-write')) return { ok: true };
 	try {
 		await app.fileManager.processFrontMatter(file, (fm) => {
 			if (fm.smartmemory !== undefined && fm.smartmemory !== null && !isMapping(fm.smartmemory)) {
@@ -106,7 +108,9 @@ export function readSmartMemoryId(app: App, file: TFile, workspaceId: string): s
 export async function clearSmartMemoryFrontmatter(
 	app: App,
 	file: TFile,
+	settings: Pick<SmartMemorySettings, 'excludeFolders'>,
 ): Promise<{ ok: true } | { ok: false; error: Error }> {
+	if (isPathExcluded(file.path, settings, 'purge-frontmatter-clear')) return { ok: true };
 	try {
 		await app.fileManager.processFrontMatter(file, (fm) => {
 			delete fm.resource;

@@ -1,6 +1,7 @@
 import { TAbstractFile, TFile, Notice } from 'obsidian';
 import type SmartMemoryPlugin from '../main';
 import { KeyedDebouncer } from '../util/debouncer';
+import { isPathExcluded } from '../util/exclusions';
 
 /**
  * Wires Obsidian vault lifecycle events to plugin state:
@@ -58,6 +59,7 @@ export class VaultEvents {
 			app.vault.on('modify', (file: TAbstractFile) => {
 				if (!(file instanceof TFile) || file.extension !== 'md') return;
 				if (!this.plugin.settings.autoIngestOnSave) return;
+				if (isPathExcluded(file.path, this.plugin.settings, 'auto-modify')) return;
 				if (this.plugin.ingestService?.batchInProgress) return;
 				// Skip modify events fired by our own frontmatter writes.
 				// Without this, every successful ingest still burns a 5s
@@ -71,7 +73,7 @@ export class VaultEvents {
 
 				console.debug('[smartmemory] modify event scheduled', file.path);
 				this.modifyDebouncer.schedule(file.path, () => {
-					void this.runAutoIngest(file);
+					void this.runAutoIngest(file, 'auto-modify');
 				});
 			})
 		);
@@ -80,11 +82,12 @@ export class VaultEvents {
 			app.vault.on('create', (file: TAbstractFile) => {
 				if (!(file instanceof TFile) || file.extension !== 'md') return;
 				if (!this.plugin.settings.autoIngestOnCreate) return;
+				if (isPathExcluded(file.path, this.plugin.settings, 'auto-create')) return;
 				if (this.plugin.ingestService?.batchInProgress) return;
 
 				console.debug('[smartmemory] create event scheduled', file.path);
 				this.createDebouncer.schedule(file.path, () => {
-					void this.runAutoIngest(file);
+					void this.runAutoIngest(file, 'auto-create');
 				});
 			})
 		);
@@ -96,7 +99,8 @@ export class VaultEvents {
 		});
 	}
 
-	private async runAutoIngest(file: TFile): Promise<void> {
+	private async runAutoIngest(file: TFile, pathClass: string): Promise<void> {
+		if (isPathExcluded(file.path, this.plugin.settings, pathClass)) return;
 		const service = this.plugin.ingestService;
 		if (!service) {
 			console.warn('[smartmemory] auto-ingest skipped — no ingestService', file.path);
@@ -108,7 +112,8 @@ export class VaultEvents {
 		}
 		console.log('[smartmemory] auto-ingest firing', file.path);
 		try {
-			await service.ingestFile(file);
+			const result = await service.ingestFile(file);
+			if (!result.itemId) return;
 			console.log('[smartmemory] auto-ingest succeeded', file.path);
 		} catch (err) {
 			// Surface failures so users notice them; previous silent catch hid

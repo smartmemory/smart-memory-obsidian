@@ -1,6 +1,7 @@
 import { Notice, TFile, TFolder } from 'obsidian';
 import type SmartMemoryPlugin from '../main';
 import { handleQuotaError } from '../util/quota-errors';
+import { isPathExcluded } from '../util/exclusions';
 
 export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
@@ -17,7 +18,9 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 				return;
 			}
 			try {
-				await plugin.ingestService.ingestFile(file);
+				if (isPathExcluded(file.path, plugin.settings, 'manual-ingest')) return;
+				const result = await plugin.ingestService.ingestFile(file);
+				if (!result.itemId) return;
 				new Notice('SmartMemory: ingested');
 			} catch (err) {
 				if (!handleQuotaError(plugin.app, err, { isLite: plugin.isLite })) {
