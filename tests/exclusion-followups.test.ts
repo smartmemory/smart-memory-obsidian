@@ -63,21 +63,69 @@ it('returns a distinct exclusion skip reason', async () => {
 	} finally { await h.close(); }
 });
 
-it('reports empty content as a failure for manual, batch, and automatic ingest', async () => {
-	const h = await exclusionVault(false);
-	try {
-		await h.app.vault.modify(h.file, '---\nsmartmemory_id: item-1\n---\n  \n');
-		const writes = h.writes;
-		await expect(h.service.ingestFile(h.file)).rejects.toThrow(/empty content/i);
+type Vault = Awaited<ReturnType<typeof exclusionVault>>;
+const frontmatterOnly = '---\nsmartmemory_id: item-1\n---\n  \n';
+// One row per ingest caller/entry path. Throwing on empty content breaks the
+// automatic rows, swallowing the result breaks explicit feedback and batch counts.
+const emptyCallers: Array<{
+	name: string; body: string; feedback: 'quiet' | 'note' | 'batch';
+	run: (h: Vault) => Promise<unknown>;
+}> = [
+	{ name: 'service boundary (background)', body: '  \n', feedback: 'quiet', run: async h => {
+		expect(await h.service.ingestFile(h.file)).toEqual({ itemId: '', skipped: 'empty' });
+	} },
+	{ name: 'current-note command (explicit)', body: '', feedback: 'note', run: async h => {
 		registerIngestCommands(h.plugin);
 		await h.commands.get('smartmemory-ingest-current-note').callback();
-		expect(Notice.lastMessage ?? '').toMatch(/empty content/i);
-		expect(await h.service.ingestFolder([h.file])).toEqual({ succeeded: 0, failed: 1, skipped: 0 });
-		const events = new VaultEvents(h.plugin);
-		await (events as any).runAutoIngest(h.file, 'auto-modify');
-		expect(Notice.lastMessage ?? '').toMatch(/empty content/i);
+	} },
+	{ name: 'current-note command, frontmatter only (explicit)', body: frontmatterOnly, feedback: 'note', run: async h => {
+		registerIngestCommands(h.plugin);
+		await h.commands.get('smartmemory-ingest-current-note').callback();
+	} },
+	{ name: 'folder worker (automatic per note)', body: frontmatterOnly, feedback: 'quiet', run: async h => {
+		expect(await h.service.ingestFolder([h.file])).toEqual({ succeeded: 0, failed: 0, skipped: 1 });
+	} },
+	{ name: 'folder command (explicit summary)', body: '', feedback: 'batch', run: async h => {
+		registerIngestCommands(h.plugin);
+		await h.commands.get('smartmemory-ingest-folder').callback();
+	} },
+	{ name: 'shared auto-ingest handler (automatic)', body: frontmatterOnly, feedback: 'quiet', run: async h => {
+		await (new VaultEvents(h.plugin) as any).runAutoIngest(h.file, 'auto-modify');
+	} },
+	// Reproduce review-scratch-r2/probe-empty-create.test.ts through the registered event and real debounce.
+	{ name: 'reviewer probe-empty-create event (automatic)', body: '', feedback: 'quiet', run: async h => {
+		new VaultEvents(h.plugin).register();
+		h.handlers.get('create')!(h.file);
+		await new Promise(r => setTimeout(r, 700));
+	} },
+	{ name: 'modify event (automatic)', body: frontmatterOnly, feedback: 'quiet', run: async h => {
+		new VaultEvents(h.plugin).register();
+		h.handlers.get('modify')!(h.file);
+		await new Promise(r => setTimeout(r, 700));
+	} },
+];
+
+it.each(emptyCallers)('handles empty notes via $name', async ({ body, feedback, run }) => {
+	const h = await exclusionVault(false, 'Notes/Untitled.md');
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	vi.spyOn(console, 'error').mockImplementation(() => {});
+	try {
+		await h.app.vault.modify(h.file, body);
+		const writes = h.writes;
+		h.map();
+		// toJSON stamps serialization time. Snapshot only persisted mapping state.
+		const { lastSyncTimestamp: beforeTimestamp, ...mappings } = h.plugin.mappingStore.toJSON();
+		Notice.lastMessage = null;
+		await run(h);
+		if (feedback === 'quiet') expect(Notice.lastMessage).toBeNull();
+		else if (feedback === 'note') expect(Notice.lastMessage).toMatch(/note is empty/i);
+		else expect(Notice.lastMessage).toMatch(/0 ingested, 0 failed, 1 skipped.*empty/i);
+		expect(warn).toHaveBeenCalledWith(expect.stringMatching(/skip.*empty/i), h.file.path);
 		expect(h.apiCalls).toBe(0);
 		expect(h.writes).toBe(writes);
+		expect(h.read(h.file)).toBe(body);
+		const { lastSyncTimestamp: afterTimestamp, ...afterMappings } = h.plugin.mappingStore.toJSON();
+		expect(afterMappings).toEqual(mappings);
 	} finally { await h.close(); }
 });
 

@@ -24,8 +24,9 @@ export function isPathExcluded(
 	const excluded = (settings.excludeFolders || []).some(folder => {
 		const prefix = normalize(folder);
 		// Preserve legacy sibling-prefix matches unless the entry ends in a separator.
-		const legacyPrefix = !/[\\/]$/.test(folder.trim()) && candidate.startsWith(prefix);
-		return (!!prefix && (candidate === prefix || candidate.startsWith(prefix + '/'))) || legacyPrefix;
+		const legacyPrefix = !!prefix && !/[\\/]$/.test(folder.trim()) && candidate.startsWith(prefix);
+		// The raw base predicate must survive Unicode normalization and case folding.
+		return path.startsWith(folder) || (!!prefix && (candidate === prefix || candidate.startsWith(prefix + '/'))) || legacyPrefix;
 	});
 	if (excluded) {
 		console.warn(`[smartmemory] excluded folder: skipped ${pathClass}`, path);

@@ -110,7 +110,7 @@ export class IngestService {
 		void Promise.resolve(this.onMappingsChanged?.()).catch(() => {});
 	}
 
-	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string; skipped?: 'excluded' }> {
+	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string; skipped?: 'excluded' | 'empty' }> {
 		const excluded = () => isPathExcluded(file.path, this.settings, 'ingest-file');
 		if (excluded()) return { itemId: '', skipped: 'excluded' };
 		this.emit({ type: 'ingest-start', path: file.path });
@@ -135,7 +135,8 @@ export class IngestService {
 			}
 			const content = okf?.body ?? stripLeadingFrontmatter(raw);
 			if (!content.trim()) {
-				throw new Error('empty content');
+				console.warn('[smartmemory] ingest skipped: note is empty', file.path);
+				return { itemId: '', skipped: 'empty' };
 			}
 			const newHash = hashContent(content);
 			const oldHash = this.store.getContentHash(file.path);

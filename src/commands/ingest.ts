@@ -21,7 +21,9 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 				if (isPathExcluded(file.path, plugin.settings, 'manual-ingest', true)) return;
 				const result = await plugin.ingestService.ingestFile(file);
 				if (result.skipped) {
-					new Notice('SmartMemory: note is in an excluded folder');
+					new Notice(result.skipped === 'empty'
+						? 'SmartMemory: note is empty'
+						: 'SmartMemory: note is in an excluded folder');
 					return;
 				}
 				new Notice('SmartMemory: ingested');
@@ -55,7 +57,7 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 			new Notice(`SmartMemory: ingesting ${files.length} notes...`);
 			const result = await plugin.ingestService.ingestFolder(files);
 			new Notice(
-				`SmartMemory: ${result.succeeded} ingested, ${result.failed} failed, ${result.skipped} skipped`
+				`SmartMemory: ${result.succeeded} ingested, ${result.failed} failed, ${result.skipped} skipped (empty or excluded)`
 			);
 		},
 	});

@@ -66,6 +66,9 @@ API key can also be supplied via the `SMARTMEMORY_API_KEY` environment variable,
 | Contradiction banner | Toggle the supersession warning + sweep interval |
 | Graph max nodes / max hops | Knowledge-graph pane bounds |
 
+Empty or frontmatter-only notes are skipped by automatic ingest. Ingest current note
+explains that the note is empty. Folder summaries count empty notes as skipped.
+
 ## Compatibility
 
 - Obsidian **1.5.0** and above.

@@ -22,8 +22,15 @@ const boundaries: Array<[string, string, boolean]> = [
 	['PrivateArchive/x.md', 'Private\\', false],
 	['Public/Private/note.md', 'Private/', false],
 	['Public/note.md', '', true],
-	['Public/note.md', '   ', true],
+	['Public/note.md', '   ', false],
 	['Private', 'Private/', true],
+	// Normalization can destroy a raw prefix (NFC composition and contextual sigma).
+	['Cafe\u0301/x.md', 'Cafe', true],
+	['ΑΡΧΕΙΟΣΑ/x.md', 'ΑΡΧΕΙΟΣ', true],
+	// Collapsed entries must equal base, rather than excluding the whole vault.
+	['Notes/x.md', '.', false],
+	['Notes/x.md', '..', false],
+	['Notes/x.md', 'Private/..', false],
 ];
 
 it.each(boundaries)('normalizes %s against %s => %s', (path, folder, excluded) => {
