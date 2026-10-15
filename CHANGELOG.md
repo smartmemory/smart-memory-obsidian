@@ -4,6 +4,8 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+## [0.2.18] - 2026-10-15: Exclude-folders fix (OBSIDIAN-EXCLUDE-FOLDERS-1)
+
 ### Fixed
 - Empty and frontmatter-only notes skip automatic ingest quietly with a path-specific console warning. Explicit note ingest explains that the note is empty, and folder summaries count it as skipped. Preserve literal exclusion prefixes across Unicode normalization and avoid excluding the whole vault for `.`, `..`, or `Private/..` entries (OBSIDIAN-EXCLUDE-FOLDERS-1 fix round 2).
 - Preserve legacy exclusion path prefixes while adding normalized folder matching. Excluded commands and panels explain why they skip. Purge clears excluded mappings without editing their frontmatter, and link insertion filters excluded targets (OBSIDIAN-EXCLUDE-FOLDERS-1 fix round 1).
