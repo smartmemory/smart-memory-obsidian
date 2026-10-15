@@ -1,6 +1,7 @@
+import { Notice } from 'obsidian';
 import type { SmartMemorySettings } from '../types';
 
-/** Vault-relative, case-insensitive folder boundaries. Ignore empty entries.
+/** Vault-relative, case-insensitive path prefixes. Stored empty prefixes exclude all notes.
  * Use the same canonical form for both the configured folder and the note. */
 function normalize(path: string): string {
 	const parts: string[] = [];
@@ -17,12 +18,18 @@ export function isPathExcluded(
 	path: string,
 	settings: Pick<SmartMemorySettings, 'excludeFolders'>,
 	pathClass: string,
+	notify = false,
 ): boolean {
 	const candidate = normalize(path);
 	const excluded = (settings.excludeFolders || []).some(folder => {
 		const prefix = normalize(folder);
-		return !!prefix && (candidate === prefix || candidate.startsWith(prefix + '/'));
+		// Preserve legacy sibling-prefix matches unless the entry ends in a separator.
+		const legacyPrefix = !/[\\/]$/.test(folder.trim()) && candidate.startsWith(prefix);
+		return (!!prefix && (candidate === prefix || candidate.startsWith(prefix + '/'))) || legacyPrefix;
 	});
-	if (excluded) console.warn(`[smartmemory] excluded folder: skipped ${pathClass}`, path);
+	if (excluded) {
+		console.warn(`[smartmemory] excluded folder: skipped ${pathClass}`, path);
+		if (notify) new Notice('SmartMemory: note is in an excluded folder');
+	}
 	return excluded;
 }

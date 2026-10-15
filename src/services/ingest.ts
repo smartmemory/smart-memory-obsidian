@@ -110,14 +110,14 @@ export class IngestService {
 		void Promise.resolve(this.onMappingsChanged?.()).catch(() => {});
 	}
 
-	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string }> {
+	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string; skipped?: 'excluded' }> {
 		const excluded = () => isPathExcluded(file.path, this.settings, 'ingest-file');
-		if (excluded()) return { itemId: '' };
+		if (excluded()) return { itemId: '', skipped: 'excluded' };
 		this.emit({ type: 'ingest-start', path: file.path });
 
 		try {
 			const raw = await this.app.vault.read(file);
-			if (excluded()) return { itemId: '' };
+			if (excluded()) return { itemId: '', skipped: 'excluded' };
 			// Parse OKF rather than discarding frontmatter wholesale. The body is
 			// still the ingest text, while native fields, extension data, and
 			// preserved producer keys travel in structured context.
@@ -135,8 +135,7 @@ export class IngestService {
 			}
 			const content = okf?.body ?? stripLeadingFrontmatter(raw);
 			if (!content.trim()) {
-				this.emit({ type: 'ingest-error', path: file.path, error: 'empty content' });
-				return { itemId: '' };
+				throw new Error('empty content');
 			}
 			const newHash = hashContent(content);
 			const oldHash = this.store.getContentHash(file.path);
@@ -158,7 +157,7 @@ export class IngestService {
 				let remoteMissing = false;
 				try {
 					const remote: any = await this.client.memories.get(existingId);
-					if (excluded()) return { itemId: '' };
+					if (excluded()) return { itemId: '', skipped: 'excluded' };
 					if (remote?.item_id) {
 						this.emit({ type: 'ingest-complete', path: file.path, itemId: existingId });
 						return { itemId: existingId };
@@ -175,7 +174,7 @@ export class IngestService {
 					}
 				}
 				if (remoteMissing) {
-					if (excluded()) return { itemId: '' };
+					if (excluded()) return { itemId: '', skipped: 'excluded' };
 					this.store.handleDelete(file.path);
 					const result = await this.client.memories.ingest(content, {
 						context: ingestContext(file.path, okf),
@@ -216,12 +215,12 @@ export class IngestService {
 					this.store.handleDelete(file.path);
 				}
 				const context = ingestContext(file.path, okf);
-				if (excluded()) return { itemId: '' };
+				if (excluded()) return { itemId: '', skipped: 'excluded' };
 				const result = await this.client.memories.ingest(content, { context });
 				itemId = result.item_id;
 			}
 
-			if (excluded()) return { itemId: '' };
+			if (excluded()) return { itemId: '', skipped: 'excluded' };
 			this.store.set(file.path, itemId);
 			this.store.setContentHash(file.path, newHash);
 			this.notifyMappingsChanged();
@@ -413,8 +412,8 @@ export class IngestService {
 					const file = queue[idx];
 					try {
 						const result = await this.ingestFile(file, { skipEnrichment: true });
-						if (result.itemId) succeeded++;
-						else skipped++;
+						if (result.skipped) skipped++;
+						else succeeded++;
 					} catch {
 						failed++;
 					}

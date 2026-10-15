@@ -17,7 +17,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 				new Notice('SmartMemory: no active note');
 				return;
 			}
-			if (isPathExcluded(file.path, plugin.settings, 'autolink-command')) return;
+			if (isPathExcluded(file.path, plugin.settings, 'autolink-command', true)) return;
 			const client = plugin.client;
 			if (!client) {
 				new Notice('SmartMemory: not connected');
@@ -45,7 +45,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 					.filter((e: any) => e.name);
 
 				if (entities.length === 0) {
-					if (isPathExcluded(file.path, plugin.settings, 'autolink-command')) return;
+					if (isPathExcluded(file.path, plugin.settings, 'autolink-command', true)) return;
 					const neighborsResp: any = await (client.memories as any).getNeighbors(itemId);
 					entities = entityNeighbors(neighborsResp?.neighbors || [])
 						.map(n => ({
@@ -71,6 +71,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 			// window). Mirrors Obsidian's own wikilink resolution.
 			const basenameIndex = new Map<string, string>();
 			for (const f of plugin.app.vault.getMarkdownFiles()) {
+				if (isPathExcluded(f.path, plugin.settings, 'autolink-target')) continue;
 				basenameIndex.set(f.basename.toLowerCase(), f.path);
 			}
 

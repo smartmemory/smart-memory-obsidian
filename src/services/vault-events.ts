@@ -113,7 +113,7 @@ export class VaultEvents {
 		console.log('[smartmemory] auto-ingest firing', file.path);
 		try {
 			const result = await service.ingestFile(file);
-			if (!result.itemId) return;
+			if (result.skipped) return;
 			console.log('[smartmemory] auto-ingest succeeded', file.path);
 		} catch (err) {
 			// Surface failures so users notice them; previous silent catch hid

@@ -86,7 +86,10 @@ export class InlineSuggestions {
 		const currentItemId = view.file
 			? this.plugin.mappingStore.getMemoryId(view.file.path)
 			: null;
-		const filtered = results.filter(r => r.itemId !== currentItemId);
+		const filtered = results.filter(r => {
+			const path = this.plugin.mappingStore.getFilePath(r.itemId);
+			return r.itemId !== currentItemId && (!path || !isPathExcluded(path, this.plugin.settings, 'suggestion-link-target'));
+		});
 		if (filtered.length === 0) return;
 
 		const widget = view.containerEl.createDiv({ cls: WIDGET_CLASS });
@@ -101,9 +104,11 @@ export class InlineSuggestions {
 				text: `[[${label}]]`,
 			});
 			link.addEventListener('click', () => {
-				if (!filePath) return;
-				if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'suggestion-insert-link')) return;
-				const target = toWikilinkTarget(filePath);
+				const currentPath = this.plugin.mappingStore.getFilePath(result.itemId);
+				if (!currentPath) return;
+				if (isPathExcluded(currentPath, this.plugin.settings, 'suggestion-link-target', true)) return;
+				if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'suggestion-insert-link', true)) return;
+				const target = toWikilinkTarget(currentPath);
 				view.editor.replaceSelection(`[[${target}]]`);
 				this.clearWidget();
 			});

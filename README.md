@@ -60,7 +60,7 @@ API key can also be supplied via the `SMARTMEMORY_API_KEY` environment variable,
 |---------|---------|
 | API URL / API Key / Workspace ID | Connection |
 | Auto-ingest on save / on create | Toggle automatic ingest of vault changes |
-| Exclude folders | Comma-separated folders (e.g. `templates/, .obsidian/`). Applies to all note sends and edits, including automatic ingest, recall, suggestions, and startup migration. Case-insensitive, includes subfolders, and accepts either slash style. Folder names match at boundaries, so `private/` does not exclude `private-archive/`. |
+| Exclude folders | Comma-separated path prefixes (e.g. `templates/, .obsidian/`). Applies to all note sends and edits, including automatic ingest, recall, suggestions, and startup migration. Case-insensitive, includes subfolders, and accepts either slash style. An entry without a trailing `/` also matches sibling names that start with it (`Private` matches `PrivateArchive/`). Add `/` to match only that folder and its subfolders. |
 | Write entities / relations / memory_type / sync timestamp | Per-field toggles for what gets written back to frontmatter |
 | Suggestion frequency (off / 5s / 2s / 1s) | Inline-suggestion debounce |
 | Contradiction banner | Toggle the supersession warning + sweep interval |

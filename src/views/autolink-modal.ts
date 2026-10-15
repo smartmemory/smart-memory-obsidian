@@ -82,11 +82,11 @@ export class AutolinkModal extends Modal {
 	}
 
 	private async applyAndClose(): Promise<void> {
-		if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) {
+		if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply', true)) {
 			this.close();
 			return;
 		}
-		const accepted = this.proposals.filter((_, i) => this.accepted.has(i));
+		let accepted = this.proposals.filter((_, i) => this.accepted.has(i));
 		if (accepted.length === 0) {
 			this.close();
 			return;
@@ -104,10 +104,15 @@ export class AutolinkModal extends Modal {
 				return;
 			}
 
+			// Targets are relative Markdown paths. Resolve them against the source
+			// directory before checking current settings, including after the read.
+			const directory = this.file.path.split('/').slice(0, -1).join('/');
+			accepted = accepted.filter(p => !isPathExcluded(`${directory}/${p.target}`, this.plugin.settings, 'autolink-target', true));
+			if (accepted.length === 0) return;
 			const newText = applyLinkInsertions(this.originalText, accepted);
-			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) return;
+			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply', true)) return;
 			await this.app.vault.modify(this.file, newText);
-			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply')) return;
+			if (isPathExcluded(this.file.path, this.plugin.settings, 'autolink-apply', true)) return;
 			const newEdges = typedEdgesFromLinkProposals(accepted);
 			try {
 				await this.app.fileManager.processFrontMatter(this.file, (fm) => {

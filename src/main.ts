@@ -642,9 +642,9 @@ export default class SmartMemoryPlugin extends Plugin {
 		const files = this.app.vault.getMarkdownFiles();
 		const { clearSmartMemoryFrontmatter } = await import('./bridge/frontmatter');
 		for (const f of files) {
-			if (isPathExcluded(f.path, this.settings, 'purge-frontmatter-clear')) continue;
 			const id = this.mappingStore.getMemoryId(f.path);
 			if (id) this.mappingStore.handleDelete(f.path);
+			if (isPathExcluded(f.path, this.settings, 'purge-frontmatter-clear')) continue;
 			await clearSmartMemoryFrontmatter(this.app, f, this.settings);
 		}
 		await this.saveMappings();

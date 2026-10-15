@@ -17,7 +17,7 @@ export class RecallModal extends Modal {
 	}
 
 	async onOpen(): Promise<void> {
-		if (this.sourceFile && isPathExcluded(this.sourceFile.path, this.plugin.settings, 'recall-query')) return;
+		if (this.sourceFile && isPathExcluded(this.sourceFile.path, this.plugin.settings, 'recall-query', true)) return;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('smartmemory-recall-modal');
@@ -45,7 +45,7 @@ export class RecallModal extends Modal {
 				dedupeContent: true,
 			});
 			// Filter empty-content legacy items — see search-view.ts.
-			const visible = results.filter((r) => (r.content || '').trim().length > 0);
+			const visible = results.filter((r) => (r.content || '').trim().length > 0 && !this.targetExcluded(r));
 			this.renderResults(resultsEl, visible);
 		} catch (err) {
 			resultsEl.empty();
@@ -113,13 +113,23 @@ export class RecallModal extends Modal {
 		return (result.title || 'untitled').replace(/[\[\]|]/g, '');
 	}
 
+	private targetExcluded(result: SearchResult, notify = false): boolean {
+		const mapped = this.plugin.mappingStore.getFilePath(result.itemId);
+		// An unresolved title can still resolve to an excluded local note.
+		const paths = mapped ? [mapped] : this.app.vault.getMarkdownFiles()
+			.filter(f => f.basename === result.title || f.path === result.title || f.path.replace(/\.md$/, '') === result.title)
+			.map(f => f.path);
+		return paths.some(path => isPathExcluded(path, this.plugin.settings, 'recall-link-target', notify));
+	}
+
 	private insertLink(result: SearchResult): void {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!view) {
 			new Notice('SmartMemory: open a note first to insert links');
 			return;
 		}
-		if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'recall-insert-link')) return;
+		if (view.file && isPathExcluded(view.file.path, this.plugin.settings, 'recall-insert-link', true)) return;
+		if (this.targetExcluded(result, true)) return;
 		view.editor.replaceSelection(`[[${this.wikilinkTarget(result)}]]`);
 	}
 
@@ -147,13 +157,13 @@ export class RecallModal extends Modal {
 			path = `SmartMemory Imports/${safeTitle} (${i}).md`;
 			i++;
 		}
-		if (isPathExcluded(path, this.plugin.settings, 'recall-import-note')) return;
+		if (isPathExcluded(path, this.plugin.settings, 'recall-import-note', true)) return;
 		try {
 			const folder = 'SmartMemory Imports';
 			if (!this.app.vault.getAbstractFileByPath(folder)) {
 				await this.app.vault.createFolder(folder);
 			}
-			if (isPathExcluded(path, this.plugin.settings, 'recall-import-note')) return;
+			if (isPathExcluded(path, this.plugin.settings, 'recall-import-note', true)) return;
 			const file = await this.app.vault.create(path, result.content);
 			// Persist the note↔memory link so it survives a reload. The mapping
 			// store alone is in-memory until saveMappings() flushes it to

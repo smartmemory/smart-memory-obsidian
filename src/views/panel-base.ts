@@ -86,7 +86,10 @@ export abstract class SmartMemoryPanelBase extends ItemView {
 			return;
 		}
 
-		if (isPathExcluded(target.path, this.plugin.settings, `${this.getViewType()}-sidebar`)) return;
+		if (isPathExcluded(target.path, this.plugin.settings, `${this.getViewType()}-sidebar`)) {
+			this.renderInfo(root, 'This note is in an excluded folder.');
+			return;
+		}
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(target.path) ??
 			readSmartMemoryId(this.plugin.app, target, this.plugin.settings.workspaceId);

@@ -1,4 +1,5 @@
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { createServer } from 'node:http';
 import { load, dump } from 'js-yaml';
@@ -15,9 +16,12 @@ import { DEFAULT_SETTINGS } from '../../src/types';
 /** Host adapter only: notes live on disk and the real SDK uses loopback HTTP.
  * No real Obsidian runtime is available in Vitest. Never contact a live API. */
 export async function exclusionVault(excluded: boolean, path = 'Private/note.md') {
-	const scratch = resolve(process.cwd(), '../scratch');
-	mkdirSync(scratch, { recursive: true });
-	const root = mkdtempSync(resolve(scratch, 'test_exclusions_'));
+	const root = mkdtempSync(resolve(tmpdir(), 'test_exclusions_'));
+	const response: any = {
+		item_id: 'item-1', memory_type: 'semantic', items: [], decisions: [], lineage: [],
+		entities: [{ name: 'Target' }],
+		neighbors: [{ item_id: 'entity-1', content: 'Target', link_type: 'CONTAINS_ENTITY' }],
+	};
 	const requests: Array<{ method: string; url: string; body: string }> = [];
 	const pending = new Set<Promise<unknown>>();
 	let missing = false;
@@ -33,11 +37,7 @@ export async function exclusionVault(excluded: boolean, path = 'Private/note.md'
 			return;
 		}
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		res.end(JSON.stringify({
-			item_id: 'item-1', memory_type: 'semantic', items: [], decisions: [], lineage: [],
-			entities: [{ name: 'Target' }],
-			neighbors: [{ item_id: 'entity-1', content: 'Target', link_type: 'CONTAINS_ENTITY' }],
-		}));
+		res.end(JSON.stringify(response));
 	});
 	await new Promise<void>(r => server.listen(0, '127.0.0.1', r));
 	const base = `http://127.0.0.1:${(server.address() as any).port}`;
@@ -127,7 +127,7 @@ export async function exclusionVault(excluded: boolean, path = 'Private/note.md'
 	plugin.searchService = new SearchService(client);
 	plugin.contradictionService = new ContradictionService(client);
 	return {
-		plugin, service, app, file, view, settings, requests, commands, handlers, read,
+		plugin, service, app, file, view, settings, requests, commands, handlers, read, root, response,
 		get apiCalls() { return apiCalls; }, get writes() { return writes; }, initial,
 		map: () => plugin.mappingStore.set(file.path, 'item-1'),
 		missing: () => { missing = true; },

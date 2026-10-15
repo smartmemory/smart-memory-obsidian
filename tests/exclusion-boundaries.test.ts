@@ -9,21 +9,42 @@ import { exclusionVault } from './helpers/exclusion-vault';
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); document.body.replaceChildren(); });
 
-it.each([
+const boundaries: Array<[string, string, boolean]> = [
 	['Private/note.md', 'Private', true],
 	['private/sub/note.md', ' PRIVATE/// ', true],
 	['Private\\sub\\note.md', './private/', true],
 	['./Private//sub/../note.md/', '/PRIVATE/', true],
 	['Prive\u0301/note.md', 'Privé/', true],
-	['PrivateArchive/note.md', 'Private', false],
+	['PrivateArchive/note.md', 'Private', true],
+	['PrivateArchive/x.md', 'Private', true],
+	['journal-2024/x.md', 'journal', true],
+	['PrivateArchive/x.md', 'Private/', false],
+	['PrivateArchive/x.md', 'Private\\', false],
 	['Public/Private/note.md', 'Private/', false],
-	['Public/note.md', '', false],
-	['Public/note.md', '   ', false],
+	['Public/note.md', '', true],
+	['Public/note.md', '   ', true],
 	['Private', 'Private/', true],
-])('normalizes %s against %s => %s', (path, folder, excluded) => {
+];
+
+it.each(boundaries)('normalizes %s against %s => %s', (path, folder, excluded) => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 	expect(isPathExcluded(path as string, { excludeFolders: [folder as string] }, 'normalization')).toBe(excluded);
 	expect(warn).toHaveBeenCalledTimes(excluded ? 1 : 0);
+});
+
+// Literal reference: 88b75fc, src/services/ingest.ts:428-438.
+function baseExcluded(path: string, pattern: string): boolean {
+	const normalized = pattern.endsWith('/') ? pattern : pattern + '/';
+	return path.startsWith(normalized) || path.startsWith(pattern);
+}
+
+it('never narrows the base rule for configured path prefixes in the table', () => {
+	vi.spyOn(console, 'warn').mockImplementation(() => {});
+	for (const [path, folder] of boundaries) {
+		const base = baseExcluded(path, folder);
+		expect(Number(isPathExcluded(path, { excludeFolders: [folder] }, 'legacy-compatibility')),
+			`${JSON.stringify(path)} against ${JSON.stringify(folder)}`).toBeGreaterThanOrEqual(Number(base));
+	}
 });
 
 type Vault = Awaited<ReturnType<typeof exclusionVault>>;

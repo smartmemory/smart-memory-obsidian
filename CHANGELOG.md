@@ -5,9 +5,10 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 ## Unreleased
 
 ### Fixed
+- Preserve legacy exclusion path prefixes while adding normalized folder matching. Excluded commands and panels explain why they skip. Empty notes report an ingest failure, purge clears excluded mappings without editing their frontmatter, and link insertion filters excluded targets (OBSIDIAN-EXCLUDE-FOLDERS-1 fix round 1).
 - Production builds now rebuild an isolated SDK source copy before bundling, fail on SDK setup or compilation errors, and record the SDK commit and dirty flag in `main.js` (PLUGIN-REPRO-BUILD-1).
 - Legacy plugin and scoped graph-library SDK imports now share the freshly compiled SDK. Builds accept `SMARTMEMORY_SDK_PATH` and `SMARTMEMORY_BUILD_SCRATCH`, preserving the input checkout and ignoring its old dist.
-- **Excluded folders apply throughout the plugin.** Excluded notes are skipped by manual and automatic ingest, folder batches, metadata updates, enrichment, recall queries, inline suggestions, note-specific panels, auto-link edits, imports, purge cleanup, and legacy frontmatter migration. Skips log the operation and note path. Folder matching ignores case, normalizes separators and trailing slashes, and respects folder boundaries.
+- **Excluded folders apply throughout the plugin.** Excluded notes are skipped by manual and automatic ingest, folder batches, metadata updates, enrichment, recall queries, inline suggestions, note-specific panels, auto-link edits, imports, purge frontmatter cleanup, and legacy frontmatter migration. Skips log the operation and note path. Path prefixes ignore case and normalize separators. An entry without a trailing `/` also matches sibling names that start with it. Add `/` to match only that folder and its subfolders.
 
 ## [0.2.17] - 2026-10-15: Graph keyboard delete fix (GRAPH-KEY-DELETE-1)
 

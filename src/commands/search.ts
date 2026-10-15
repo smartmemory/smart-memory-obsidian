@@ -74,7 +74,7 @@ export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 					return;
 				}
 				source = file;
-				if (isPathExcluded(file.path, plugin.settings, 'recall-query')) return;
+				if (isPathExcluded(file.path, plugin.settings, 'recall-query', true)) return;
 				try {
 					query = await plugin.app.vault.read(file);
 				} catch {
@@ -86,7 +86,7 @@ export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 				new Notice('SmartMemory: nothing to recall');
 				return;
 			}
-			if (source && isPathExcluded(source.path, plugin.settings, 'recall-query')) return;
+			if (source && isPathExcluded(source.path, plugin.settings, 'recall-query', true)) return;
 			new RecallModal(plugin.app, plugin, query, source ?? undefined).open();
 		},
 	});

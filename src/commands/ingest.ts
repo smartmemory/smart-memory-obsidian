@@ -18,9 +18,12 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 				return;
 			}
 			try {
-				if (isPathExcluded(file.path, plugin.settings, 'manual-ingest')) return;
+				if (isPathExcluded(file.path, plugin.settings, 'manual-ingest', true)) return;
 				const result = await plugin.ingestService.ingestFile(file);
-				if (!result.itemId) return;
+				if (result.skipped) {
+					new Notice('SmartMemory: note is in an excluded folder');
+					return;
+				}
 				new Notice('SmartMemory: ingested');
 			} catch (err) {
 				if (!handleQuotaError(plugin.app, err, { isLite: plugin.isLite })) {
@@ -70,6 +73,7 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 				new Notice('SmartMemory: not connected');
 				return;
 			}
+			if (isPathExcluded(file.path, plugin.settings, 'enrichment', true)) return;
 			await plugin.ingestService.enrichFile(file);
 		},
 	});
