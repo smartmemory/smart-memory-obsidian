@@ -4,6 +4,14 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+## [0.2.17] - 2026-10-15: Graph keyboard delete fix (GRAPH-KEY-DELETE-1)
+
+### Fixed
+- **Typing in a note could delete graph nodes.** The graph view listened for keys across the whole Obsidian window. With nodes selected in the graph, pressing Delete or Backspace anywhere, including while editing a note, deleted those memories and entities from SmartMemory with no confirmation. Graph shortcuts now act only when the graph itself has focus and never while you type in a text field or editor.
+- **Keyboard delete is off in the Obsidian graph view.** The plugin's graph is read-first, so Delete and Backspace no longer remove anything from it.
+- **Cmd+K / Ctrl+K** focuses the graph search only from inside the graph, so it no longer takes the shortcut away from Obsidian or from a note you are editing.
+
+### Changed
 - Repo references renamed `smartmemory-*` -> `smart-memory-*` in docs, scripts and config (INFRA-REPO-RENAME-1).
 
 - Point user-facing links at https://www.smartmemory.ai (the web app had no app.smartmemory.ai DNS until 2026-10-08, and it now only redirects to www). Filed as PLAT-APP-SUBDOMAIN-1.
