@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Removing the SDK rebuild or resolving either SDK name from node_modules must
 // fail this real production-build regression. No HTTP/backend is involved.
-import { afterAll, beforeAll, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
@@ -9,6 +9,11 @@ import { dirname, join, resolve } from 'node:path';
 const repo = process.cwd();
 const sourceSdk = resolve(process.env.SMARTMEMORY_SDK_PATH || join(repo, '../smart-memory-sdk-js'));
 const scratch = resolve(process.env.SMARTMEMORY_BUILD_SCRATCH || join(repo, '.build'));
+// Needs a sibling SDK checkout with node_modules; without one, skip loudly instead of failing in setup.
+const sdkAvailable = existsSync(join(sourceSdk, 'package.json')) && existsSync(join(sourceSdk, 'node_modules'));
+if (!sdkAvailable) {
+	console.warn(`[sdk-build] WARNING: skipping production-build regression tests, no SDK checkout with node_modules at ${sourceSdk}. Set SMARTMEMORY_SDK_PATH to run them.`);
+}
 let root: string;
 let plugin: string;
 let sdk: string;
@@ -22,6 +27,7 @@ function build(sdkPath = sdk) {
 }
 function output(result: ReturnType<typeof build>) { return result.stdout + result.stderr; }
 
+describe.skipIf(!sdkAvailable)('production SDK build', () => {
 beforeAll(() => {
 	mkdirSync(scratch, { recursive: true });
 	root = mkdtempSync(join(scratch, 'test_plugin_repro_'));
@@ -81,6 +87,17 @@ it('replaces older dist with fresh SDK source and records dirty provenance', () 
 	console.log(`stale-dist: fresh core=true, fresh scoped progress=true, stale=false, input unchanged=true; SDK git=${sha} dirty=true`);
 }, 120_000);
 
+it('builds a dirty SDK tree with a tracked file deleted and warns about it', () => {
+	// Mid-refactor SDK trees delete tracked files; the snapshot must skip them, not ENOENT.
+	const gone = 'README.md';
+	expect(execFileSync('git', ['ls-files', gone], { cwd: sdk, encoding: 'utf8' }).trim(), 'SDK must track README.md').toBe(gone);
+	rmSync(join(sdk, gone));
+	const result = build();
+	expect(result.status, output(result)).toBe(0);
+	expect(output(result)).toContain(`skipping tracked file deleted from the working tree: ${gone}`);
+	expect(readFileSync(join(plugin, 'main.js'), 'utf8').split('\n')[0]).toContain('dirty=true');
+}, 120_000);
+
 it.each([
 	['missing checkout', 'missing'],
 	['SDK build fail', 'broken'],
@@ -97,3 +114,4 @@ it.each([
 	expect(existsSync(join(plugin, 'main.js'))).toBe(false);
 	if (existsSync(join(root, 'build'))) expect(readdirSync(join(root, 'build'))).toEqual([]);
 }, 120_000);
+});

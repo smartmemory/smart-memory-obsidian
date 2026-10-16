@@ -4,6 +4,12 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+### Fixed
+- SDK snapshot skips tracked files deleted from the SDK working tree (with a warning) instead of failing the production build with ENOENT (PLUGIN-REPRO-BUILD-2).
+- `tests/sdk-build.test.ts` skips with a warning when no sibling SDK checkout with `node_modules` exists, instead of failing in setup (PLUGIN-REPRO-BUILD-2).
+- `.gitignore` ignores `node_modules` as a symlink too, so a worktree that links the main checkout's `node_modules` stays clean (PLUGIN-REPRO-BUILD-2).
+- Tailwind scans the graph library through `node_modules/@smartmemory/graph` (sibling path as fallback, with a warning if neither exists), so a build from an isolated git worktree no longer shrinks `styles.css` (44,346 to 17,962 bytes before the fix; byte-identical after) (PLUGIN-REPRO-BUILD-2).
+
 ## [0.2.18] - 2026-10-15: Exclude-folders fix (OBSIDIAN-EXCLUDE-FOLDERS-1)
 
 ### Fixed

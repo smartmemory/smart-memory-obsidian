@@ -31,8 +31,14 @@ export function buildSdk(pluginDir) {
 	try {
 		// Include tracked edits and untracked source, but never ignored dist or caches.
 		const files = git('ls-files', '-z', '--cached', '--others', '--exclude-standard').split('\0').filter(Boolean);
+		// Tracked files deleted from the working tree are still listed; the snapshot omits them (dirty is already true).
+		const deleted = new Set(git('ls-files', '-z', '--deleted').split('\0').filter(Boolean));
 		for (const file of files) {
 			if (/^(node_modules|dist)(\/|$)/.test(file)) continue;
+			if (deleted.has(file)) {
+				console.warn(`[SDK] WARNING: skipping tracked file deleted from the working tree: ${file}`);
+				continue;
+			}
 			const target = join(dir, file);
 			mkdirSync(dirname(target), { recursive: true });
 			cpSync(join(source, file), target, { dereference: true });
