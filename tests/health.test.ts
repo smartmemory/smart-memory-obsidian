@@ -16,13 +16,13 @@ import { probeHealth, healthUrlFor } from '../src/services/health';
 
 describe('healthUrlFor', () => {
 	it('appends /health to a bare origin', () => {
-		expect(healthUrlFor('http://127.0.0.1:9014')).toBe('http://127.0.0.1:9014/health');
+		expect(healthUrlFor('http://127.0.0.1:9114')).toBe('http://127.0.0.1:9114/health');
 	});
 	it('strips trailing slashes', () => {
-		expect(healthUrlFor('http://127.0.0.1:9014/')).toBe('http://127.0.0.1:9014/health');
+		expect(healthUrlFor('http://127.0.0.1:9114/')).toBe('http://127.0.0.1:9114/health');
 	});
 	it('strips a trailing /memory suffix when users paste it', () => {
-		expect(healthUrlFor('http://127.0.0.1:9014/memory')).toBe('http://127.0.0.1:9014/health');
+		expect(healthUrlFor('http://127.0.0.1:9114/memory')).toBe('http://127.0.0.1:9114/health');
 	});
 	it('handles https origins', () => {
 		expect(healthUrlFor('https://api.smartmemory.ai')).toBe('https://api.smartmemory.ai/health');
@@ -42,7 +42,7 @@ describe('probeHealth', () => {
 			arrayBuffer: new ArrayBuffer(0),
 			json: { mode: 'lite', capabilities: { delete: true, patch: true, neighbors_direction: true, quota: false, auth: false } },
 		} as any);
-		const result = await probeHealth('http://127.0.0.1:9014');
+		const result = await probeHealth('http://127.0.0.1:9114');
 		expect(result.probed).toBe(true);
 		expect(result.isLite).toBe(true);
 		expect(result.mode).toBe('lite');
@@ -79,7 +79,7 @@ describe('probeHealth', () => {
 
 	it('returns probed=false on network failure', async () => {
 		vi.mocked(requestUrl).mockRejectedValueOnce(new Error('connection refused'));
-		const result = await probeHealth('http://127.0.0.1:9014');
+		const result = await probeHealth('http://127.0.0.1:9114');
 		expect(result.probed).toBe(false);
 		expect(result.isLite).toBe(false);
 	});
@@ -92,7 +92,7 @@ describe('probeHealth', () => {
 			arrayBuffer: new ArrayBuffer(0),
 			json: null,
 		} as any);
-		const result = await probeHealth('http://127.0.0.1:9014');
+		const result = await probeHealth('http://127.0.0.1:9114');
 		expect(result.probed).toBe(false);
 		expect(result.isLite).toBe(false);
 	});

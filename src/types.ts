@@ -80,7 +80,7 @@ export const DEFAULT_SETTINGS: SmartMemorySettings = {
 export type ConnectionStatus = 'connected' | 'disconnected' | 'syncing';
 
 /** DIST-OBSIDIAN-LITE-1: daemon defaults for the local-only path. */
-export const LITE_DAEMON_URL = 'http://127.0.0.1:9014';
+export const LITE_DAEMON_URL = 'http://127.0.0.1:9114';
 
 export interface PluginData {
 	settings: SmartMemorySettings;

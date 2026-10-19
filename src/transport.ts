@@ -34,13 +34,13 @@ export function createObsidianFetch(): typeof fetch {
 			if (signal?.aborted) {
 				throw abortError(signal);
 			}
-			return toFetchResponse(result);
+			return toFetchResponse(result, url);
 		} catch (err: any) {
 			if (err?.name === 'AbortError') throw err;
 			// requestUrl throws on non-2xx — convert to synthetic Response so
 			// BaseAPI._handleError can parse status + body normally
 			if (err && typeof err.status === 'number') {
-				return toFetchResponse(err as RequestUrlResponse);
+				return toFetchResponse(err as RequestUrlResponse, url);
 			}
 			// Network-level failure (offline, DNS, ECONNREFUSED)
 			throw new TypeError(`Network request failed: ${err?.message || err}`);
@@ -55,7 +55,18 @@ function abortError(signal: AbortSignal): Error {
 	return reason;
 }
 
-function toFetchResponse(result: RequestUrlResponse): Response {
+/** One clear message when a reply is not JSON (wrong port, wrong URL, a non-SmartMemory server). */
+export function notSmartMemoryMessage(url: string): string {
+	let origin = url;
+	try {
+		origin = new URL(url).origin;
+	} catch {
+		// keep the raw string
+	}
+	return `Not a SmartMemory server at ${origin}. Check the API URL in settings.`;
+}
+
+function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 	const body = typeof result.text === 'string' ? result.text : '';
 	return {
 		ok: result.status >= 200 && result.status < 300,
@@ -63,10 +74,19 @@ function toFetchResponse(result: RequestUrlResponse): Response {
 		statusText: '',
 		headers: new Headers(result.headers as Record<string, string>),
 		json: async () => {
-			if (result.json !== undefined && result.json !== null) {
-				return result.json;
+			// Obsidian's `result.json` is a lazy getter that itself throws on a
+			// non-JSON body, so the read sits inside the same guard as the parse.
+			try {
+				if (result.json !== undefined && result.json !== null) {
+					return result.json;
+				}
+				return JSON.parse(body);
+			} catch (err) {
+				if (err instanceof SyntaxError) {
+					throw new Error(notSmartMemoryMessage(url));
+				}
+				throw err;
 			}
-			return JSON.parse(body);
 		},
 		text: async () => body,
 	} as Response;

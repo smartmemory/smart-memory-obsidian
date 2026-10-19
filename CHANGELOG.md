@@ -4,6 +4,11 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+### Fixed
+- Lite mode no longer points at `127.0.0.1:9014` by default, which the port registry assigns to the wiki Mongo. The default is now `http://127.0.0.1:9114` (registered as `smDemo` in `~/.ports`). The graph pane used to show "Unexpected token 'I', ... is not valid JSON" because Mongo answers HTTP with plain text (PLUGIN-LITE-PORT-9014-1).
+- Any reply that is not JSON now shows one clear error, "Not a SmartMemory server at <url>. Check the API URL in settings.", instead of a raw parse error. The guard sits in the shared transport, so every SDK call gets it, including Obsidian's lazy `result.json` getter that throws on a non-JSON body (PLUGIN-LITE-PORT-9014-1).
+- Version 0.2.19.
+
 ### Security
 - Build toolchain floors raised to clear published advisories: `postcss` `^8.4.0` to `^8.5.23` (HIGH, source-map loading restricted to the `from` folder) and `esbuild` `^0.24.0` to `^0.25.0` (MODERATE, dev-server CORS). The plugin build config uses neither the dev server nor `serve()`, so no build-script change was needed; `tests/deps-security-floor.test.ts` pins both floors, declared and installed (DEPS-SEC-OBSIDIAN-1).
 
