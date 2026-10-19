@@ -4,6 +4,9 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+### Security
+- Build toolchain floors raised to clear published advisories: `postcss` `^8.4.0` to `^8.5.23` (HIGH, source-map loading restricted to the `from` folder) and `esbuild` `^0.24.0` to `^0.25.0` (MODERATE, dev-server CORS). The plugin build config uses neither the dev server nor `serve()`, so no build-script change was needed; `tests/deps-security-floor.test.ts` pins both floors, declared and installed (DEPS-SEC-OBSIDIAN-1).
+
 ### Fixed
 - SDK snapshot skips tracked files deleted from the SDK working tree (with a warning) instead of failing the production build with ENOENT (PLUGIN-REPRO-BUILD-2).
 - `tests/sdk-build.test.ts` skips with a warning when no sibling SDK checkout with `node_modules` exists, instead of failing in setup (PLUGIN-REPRO-BUILD-2).
