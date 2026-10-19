@@ -80,7 +80,14 @@ export const DEFAULT_SETTINGS: SmartMemorySettings = {
 export type ConnectionStatus = 'connected' | 'disconnected' | 'syncing';
 
 /** DIST-OBSIDIAN-LITE-1: daemon defaults for the local-only path. */
-export const LITE_DAEMON_URL = 'http://127.0.0.1:9114';
+export const LITE_DAEMON_URL = 'http://127.0.0.1:9014';
+
+/**
+ * Settings text for the lite API URL field. `sm start` does not print the port
+ * (smartmemory_app/cli.py start_cmd), `sm config` prints `daemon_port`.
+ */
+export const LITE_API_URL_DESC =
+	'Local daemon endpoint. The stock default is http://127.0.0.1:9014. If your daemon runs on another port, run "sm config" and use the daemon_port it shows.';
 
 export interface PluginData {
 	settings: SmartMemorySettings;

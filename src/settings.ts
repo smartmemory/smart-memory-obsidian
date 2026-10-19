@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type SmartMemoryPlugin from './main';
-import { LITE_DAEMON_URL } from './types';
+import { LITE_DAEMON_URL, LITE_API_URL_DESC } from './types';
 
 const TEXT_DEBOUNCE_MS = 500;
 
@@ -107,7 +107,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('API URL')
 			.setDesc(this.plugin.settings.mode === 'lite'
-				? 'Local daemon endpoint. Default is http://127.0.0.1:9114, so start the daemon with SMARTMEMORY_DAEMON_PORT=9114.'
+				? LITE_API_URL_DESC
 				: 'SmartMemory service endpoint')
 			.addText(text => text
 				.setPlaceholder(this.plugin.settings.mode === 'lite' ? LITE_DAEMON_URL : 'https://api.smartmemory.ai')

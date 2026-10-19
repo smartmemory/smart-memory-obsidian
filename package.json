@@ -1,6 +1,6 @@
 {
 	"name": "smartmemory-obsidian",
-	"version": "0.2.19",
+	"version": "0.2.20",
 	"description": "SmartMemory plugin for Obsidian",
 	"main": "main.js",
 	"scripts": {
