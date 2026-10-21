@@ -5,6 +5,7 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 ## Unreleased
 
 ### Fixed
+- Test (security, DEPS-SEC-FLOOR-GUARD-CLASS-1): `tests/deps-security-floor.test.ts` pins that its floor parser already refuses every range that can admit a version below the floor (`<6.4.3`, `<=6.4.3`, `^4.1.11-rc.0`, `^4.1.12 || 4.0.18`, wildcards, tags): one row per repro, each must be rejected. No behavior change.
 - Lite mode default is back to the daemon's stock port, `http://127.0.0.1:9014` (the 0.2.19 change to 9114 is reversed: the plugin must not assume a port other than the daemon's own default). The API URL setting now says where to find your daemon's port: the stock default is 9014, and if your daemon runs elsewhere, run `sm config` and use the `daemon_port` it shows. A saved API URL is never changed, so a vault already set to another port keeps working (PLUGIN-LITE-DEFAULT-9014-1).
 - Any reply that is not JSON now shows one clear error, "Not a SmartMemory server at <url>. Check the API URL in settings.", instead of a raw parse error. The guard sits in the shared transport, so every SDK call gets it, including Obsidian's lazy `result.json` getter that throws on a non-JSON body (PLUGIN-LITE-PORT-9014-1).
 - Version 0.2.20.

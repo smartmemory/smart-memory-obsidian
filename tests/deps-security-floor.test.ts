@@ -48,3 +48,21 @@ describe('security-floor versions of the build toolchain', () => {
 		expect(atLeast(lowerBound(installed), floor), `installed ${row.pkg}@${installed} is below ${row.floor}`).toBe(true);
 	});
 });
+
+// DEPS-SEC-FLOOR-GUARD-CLASS-1: lowerBound() already refuses every range form that could admit a version
+// below the floor (operators, prerelease, `||` arms). Pin that: one row per repro, each must throw.
+describe('lowerBound refuses ranges that can admit versions below the floor', () => {
+	const unsafe = ['<6.4.3', '<=6.4.3', '^4.1.11-rc.0', '4.1.11-beta.0', '^4.1.12 || 4.0.18', '>=4.1.11 <5', '4.1.x', '*', '>4.1.10', 'latest', ''];
+	it.each(unsafe.map((r) => [r] as const))('%j is unsupported', (range) => {
+		expect(() => lowerBound(range)).toThrow(/unsupported range syntax/);
+	});
+
+	const safe = [['^4.10.0', [4, 10, 0]], ['~4.1.11', [4, 1, 11]], ['4.1.11', [4, 1, 11]]] as const;
+	it.each(safe)('%s parses to its own lower bound', (range, expected) => {
+		expect(lowerBound(range)).toEqual([...expected]);
+	});
+
+	it('an installed prerelease is refused rather than compared as its release', () => {
+		expect(() => lowerBound('6.4.3-beta.0')).toThrow(/unsupported range syntax/);
+	});
+});
