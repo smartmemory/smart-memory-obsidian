@@ -4,6 +4,9 @@ All notable changes to the SmartMemory Obsidian plugin are documented here. Form
 
 ## Unreleased
 
+### Changed
+- REL-CALLERS-FIRSTPARTY-1: saves read the SmartMemory 2.0 save receipt (item id from `subject.item_id`, plus the revision, kept per note) instead of a bare `{item_id}`. A receipt that names no item or carries an admission error is a typed refusal and maps nothing. A note that already carries an item id the server holds is adopted by that id with no save call. A note whose item id matches no server item is never uploaded automatically (auto-save, create): only "Ingest current note" and folder ingest, which the user starts, upload it. Written against the `smartmemory-sdk-js` 2.0 receipt build (`rel-callers-jssdk-1`). Test fakes only, no live 2.0 producer yet.
+
 ### Fixed
 - Test (security, DEPS-SEC-FLOOR-GUARD-CLASS-1): `tests/deps-security-floor.test.ts` pins that its floor parser already refuses every range that can admit a version below the floor (`<6.4.3`, `<=6.4.3`, `^4.1.11-rc.0`, `^4.1.12 || 4.0.18`, wildcards, tags): one row per repro, each must be rejected. No behavior change.
 - Lite mode default is back to the daemon's stock port, `http://127.0.0.1:9014` (the 0.2.19 change to 9114 is reversed: the plugin must not assume a port other than the daemon's own default). The API URL setting now says where to find your daemon's port: the stock default is 9014, and if your daemon runs elsewhere, run `sm config` and use the `daemon_port` it shows. A saved API URL is never changed, so a vault already set to another port keeps working (PLUGIN-LITE-DEFAULT-9014-1).

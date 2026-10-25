@@ -19,7 +19,7 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 			}
 			try {
 				if (isPathExcluded(file.path, plugin.settings, 'manual-ingest', true)) return;
-				const result = await plugin.ingestService.ingestFile(file);
+				const result = await plugin.ingestService.ingestFile(file, { userInitiated: true });
 				if (result.skipped) {
 					new Notice(result.skipped === 'empty'
 						? 'SmartMemory: note is empty'
