@@ -13,12 +13,14 @@ export class MappingStore {
 	private memoryToFile: Record<string, string>;
 	private entityToFile: Record<string, string>;
 	private contentHashes: Record<string, string>;
+	private revisions: Record<string, number>;
 
 	constructor(initial: VaultMappings) {
 		this.fileToMemory = { ...initial.fileToMemory };
 		this.memoryToFile = { ...initial.memoryToFile };
 		this.entityToFile = { ...initial.entityToFile };
 		this.contentHashes = { ...initial.contentHashes };
+		this.revisions = { ...(initial.revisions ?? {}) };
 	}
 
 	set(filePath: string, itemId: string): void {
@@ -64,6 +66,11 @@ export class MappingStore {
 			delete this.contentHashes[oldPath];
 			this.contentHashes[newPath] = hash;
 		}
+		const rev = this.revisions[oldPath];
+		if (rev !== undefined) {
+			delete this.revisions[oldPath];
+			this.revisions[newPath] = rev;
+		}
 
 		// Re-point any entity → file mappings that referenced the old path so
 		// auto-link does not propose stale wikilinks.
@@ -81,6 +88,7 @@ export class MappingStore {
 		}
 		delete this.fileToMemory[filePath];
 		delete this.contentHashes[filePath];
+		delete this.revisions[filePath];
 
 		// Drop entity → file mappings that pointed at the deleted note.
 		for (const [entity, path] of Object.entries(this.entityToFile)) {
@@ -96,6 +104,15 @@ export class MappingStore {
 
 	getContentHash(filePath: string): string | undefined {
 		return this.contentHashes[filePath];
+	}
+
+	setRevision(filePath: string, revision: number | undefined): void {
+		if (revision === undefined) delete this.revisions[filePath];
+		else this.revisions[filePath] = revision;
+	}
+
+	getRevision(filePath: string): number | undefined {
+		return this.revisions[filePath];
 	}
 
 	setEntityFile(entityName: string, filePath: string): void {
@@ -130,6 +147,7 @@ export class MappingStore {
 			memoryToFile: { ...this.memoryToFile },
 			entityToFile: { ...this.entityToFile },
 			contentHashes: { ...this.contentHashes },
+			revisions: { ...this.revisions },
 			lastSyncTimestamp: new Date().toISOString(),
 		};
 	}
