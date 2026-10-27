@@ -75,6 +75,21 @@ function isJsonBody(body: string): boolean {
 	}
 }
 
+const PLAIN_BODY_MAX = 200;
+
+/** A declared text/plain, non-empty, non-HTML error body: what a real SmartMemory server sends (FastAPI "Internal Server Error"). */
+function isPlainTextError(headers: Headers, body: string): boolean {
+	const type = (headers.get('content-type') || '').toLowerCase();
+	const text = body.trim();
+	return type.startsWith('text/plain') && text !== '' && !text.startsWith('<');
+}
+
+function plainTextMessage(status: number, body: string): string {
+	const text = body.trim();
+	const short = text.length > PLAIN_BODY_MAX ? `${text.slice(0, PLAIN_BODY_MAX)}...` : text;
+	return `HTTP ${status}: ${short}`;
+}
+
 function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 	const body = typeof result.text === 'string' ? result.text : '';
 	const ok = result.status >= 200 && result.status < 300;
@@ -83,7 +98,13 @@ function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 	// falls back to a bare "HTTP <status>" when a declared-JSON body fails to
 	// parse. For a non-ok reply whose body is not JSON, present the clear
 	// message as a plain-text body so both header cases reach the user intact.
-	const notJsonFailure = !ok && !isJsonBody(body);
+	// A declared text/plain body is a genuine server reply (FastAPI answers a
+	// crash with 500 text/plain "Internal Server Error"), so it keeps its own
+	// text; only a foreign body (HTML, undeclared, declared-JSON that does not
+	// parse, empty) gets the wrong-URL message.
+	const nonJsonFailure = !ok && !isJsonBody(body);
+	const plainFailure = nonJsonFailure && isPlainTextError(headers, body);
+	const notJsonFailure = nonJsonFailure && !plainFailure;
 	if (notJsonFailure) headers.set('content-type', 'text/plain');
 	return {
 		ok,
@@ -105,6 +126,10 @@ function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 				throw err;
 			}
 		},
-		text: async () => (notJsonFailure ? notSmartMemoryMessage(url) : body),
+		text: async () => {
+			if (notJsonFailure) return notSmartMemoryMessage(url);
+			if (plainFailure) return plainTextMessage(result.status, body);
+			return body;
+		},
 	} as Response;
 }

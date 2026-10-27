@@ -64,6 +64,7 @@ describe('PLUGIN-LITE-PORT-9014-1 / PLUGIN-LITE-DEFAULT-9014-1', () => {
 		{ name: 'HTML 502 declared text/html', type: 'text/html', status: 502, text: '<html>Bad Gateway</html>', want: CLEAR },
 		{ name: 'HTML 502 falsely declared JSON', type: 'application/json', status: 502, text: '<html>Bad Gateway</html>', want: CLEAR },
 		{ name: 'empty 500 declared JSON', type: 'application/json', status: 500, text: '', want: CLEAR },
+		{ name: 'plain-text 500 from a SmartMemory server keeps its text', type: 'text/plain; charset=utf-8', status: 500, text: 'Internal Server Error', want: 'HTTP 500: Internal Server Error' },
 		{ name: 'JSON 404 detail kept', type: 'application/json', status: 404, text: '{"detail":"not found"}', want: 'not found' },
 		{ name: 'JSON 401 auth kept', type: 'application/json', status: 401, text: '{"detail":"no key"}', want: 'Authentication required' },
 	])('SDK client error message: $name', async ({ type, status, text, want }) => {
