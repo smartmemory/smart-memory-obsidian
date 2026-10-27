@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createObsidianFetch } from '../src/transport';
 import { LITE_DAEMON_URL, LITE_API_URL_DESC, EMPTY_MAPPINGS } from '../src/types';
 import SmartMemoryPlugin from '../src/main';
+import { SmartMemoryClient } from 'smartmemory-sdk-js/core';
 
 vi.mock('obsidian', async (importOriginal) => ({
 	...(await importOriginal<Record<string, unknown>>()),
@@ -51,10 +52,34 @@ describe('PLUGIN-LITE-PORT-9014-1 / PLUGIN-LITE-DEFAULT-9014-1', () => {
 		const res = await createObsidianFetch()('http://127.0.0.1:9014/memory/graph/full?limit=5');
 		if (row.expect === 'clear') {
 			await expect(res.json()).rejects.toThrow(CLEAR);
-			expect(await res.text()).toBe(row.text);
+			// A non-ok non-JSON body is replaced by the clear message in text() (the SDK error path reads it).
+			expect(await res.text()).toBe(row.status >= 400 ? CLEAR : row.text);
 		} else {
 			expect(await res.json()).toEqual(row.value);
 		}
+	});
+
+	// The real SDK consumer: BaseAPI._handleError reads text() or json() depending on the declared content type.
+	it.each([
+		{ name: 'HTML 502 declared text/html', type: 'text/html', status: 502, text: '<html>Bad Gateway</html>', want: CLEAR },
+		{ name: 'HTML 502 falsely declared JSON', type: 'application/json', status: 502, text: '<html>Bad Gateway</html>', want: CLEAR },
+		{ name: 'empty 500 declared JSON', type: 'application/json', status: 500, text: '', want: CLEAR },
+		{ name: 'JSON 404 detail kept', type: 'application/json', status: 404, text: '{"detail":"not found"}', want: 'not found' },
+		{ name: 'JSON 401 auth kept', type: 'application/json', status: 401, text: '{"detail":"no key"}', want: 'Authentication required' },
+	])('SDK client error message: $name', async ({ type, status, text, want }) => {
+		const result = obsidianResult(status, text);
+		result.headers = { 'content-type': type };
+		vi.mocked(requestUrl).mockRejectedValue(result);
+		const client = new SmartMemoryClient({ apiBaseUrl: 'http://127.0.0.1:9014', fetchFn: createObsidianFetch() });
+		await expect(client.memories.list({ limit: 1 })).rejects.toThrow(want);
+	});
+
+	it('SDK client still returns a successful JSON reply', async () => {
+		const result = obsidianResult(200, '{"items":[],"total":0}');
+		result.headers = { 'content-type': 'application/json' };
+		vi.mocked(requestUrl).mockResolvedValue(result);
+		const client = new SmartMemoryClient({ apiBaseUrl: 'http://127.0.0.1:9014', fetchFn: createObsidianFetch() });
+		await expect(client.memories.list({ limit: 1 })).resolves.toBeDefined();
 	});
 
 	it('message names the origin only, not the path or query', async () => {

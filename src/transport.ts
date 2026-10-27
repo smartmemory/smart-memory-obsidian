@@ -66,13 +66,30 @@ export function notSmartMemoryMessage(url: string): string {
 	return `Not a SmartMemory server at ${origin}. Check the API URL in settings.`;
 }
 
+function isJsonBody(body: string): boolean {
+	try {
+		JSON.parse(body);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 	const body = typeof result.text === 'string' ? result.text : '';
+	const ok = result.status >= 200 && result.status < 300;
+	const headers = new Headers(result.headers as Record<string, string>);
+	// SDK BaseAPI._handleError reads text() for any non-JSON content type and
+	// falls back to a bare "HTTP <status>" when a declared-JSON body fails to
+	// parse. For a non-ok reply whose body is not JSON, present the clear
+	// message as a plain-text body so both header cases reach the user intact.
+	const notJsonFailure = !ok && !isJsonBody(body);
+	if (notJsonFailure) headers.set('content-type', 'text/plain');
 	return {
-		ok: result.status >= 200 && result.status < 300,
+		ok,
 		status: result.status,
 		statusText: '',
-		headers: new Headers(result.headers as Record<string, string>),
+		headers,
 		json: async () => {
 			// Obsidian's `result.json` is a lazy getter that itself throws on a
 			// non-JSON body, so the read sits inside the same guard as the parse.
@@ -88,6 +105,6 @@ function toFetchResponse(result: RequestUrlResponse, url: string): Response {
 				throw err;
 			}
 		},
-		text: async () => body,
+		text: async () => (notJsonFailure ? notSmartMemoryMessage(url) : body),
 	} as Response;
 }
