@@ -2,6 +2,10 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## 2.0.1
+
+Version bump to 2.0.1, every SmartMemory repo reads the same version (REL-2.0-VERSION-BUMP-2.0.1-1).
+
 ## Unreleased
 
 ### Changed
