@@ -8,6 +8,20 @@ vi.mock('obsidian', () => ({
 
 import { requestUrl } from 'obsidian';
 
+// SM2-SAVE-1 save receipt (docs/features/SM2-SAVE-1/save-receipt-contract.json): what POST /memory/ingest answers.
+const INGEST_RECEIPT = {
+	schema_version: '1.1',
+	subject: { kind: 'item_save', item_id: 'mem_123' },
+	run_id: 'run_1',
+	status_url: '/memory/status/run_1',
+	processing_stage: 'received',
+	execution_state: 'queued',
+	outcome: null,
+	terminal: false,
+	result_availability: 'pending',
+	status_version: 1,
+};
+
 describe('createObsidianFetch', () => {
 	beforeEach(() => {
 		vi.mocked(requestUrl).mockReset();
@@ -36,19 +50,22 @@ describe('createObsidianFetch', () => {
 
 		it('forwards method, headers, and body to requestUrl', async () => {
 			vi.mocked(requestUrl).mockResolvedValue({
-				status: 200,
-				headers: {},
-				text: '{}',
-				json: {},
+				status: 202,
+				headers: { 'content-type': 'application/json' },
+				text: JSON.stringify(INGEST_RECEIPT),
+				json: INGEST_RECEIPT,
 				arrayBuffer: new ArrayBuffer(0),
 			} as any);
 
 			const fetchFn = createObsidianFetch();
-			await fetchFn('https://api.test/memory/ingest', {
+			const res = await fetchFn('https://api.test/memory/ingest', {
 				method: 'POST',
 				headers: { 'X-Workspace-Id': 'ws1' },
 				body: JSON.stringify({ content: 'hi' }),
 			});
+			expect(res.ok).toBe(true);
+			expect(res.status).toBe(202);
+			expect(await res.json()).toEqual(INGEST_RECEIPT);
 
 			expect(requestUrl).toHaveBeenCalledWith({
 				url: 'https://api.test/memory/ingest',

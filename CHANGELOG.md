@@ -2,7 +2,14 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## 2.0.1
+
+Version bump to 2.0.1, every SmartMemory repo reads the same version (REL-2.0-VERSION-BUMP-2.0.1-1).
+
 ## Unreleased
+
+### Changed
+- REL-CALLERS-FIRSTPARTY-1: saves read the SmartMemory 2.0 save receipt (item id from `subject.item_id`, plus the revision, kept per note) instead of a bare `{item_id}`. A receipt that names no item or carries an admission error is a typed refusal and maps nothing. A note that already carries an item id the server holds is adopted by that id with no save call. A note whose item id matches no server item is never uploaded automatically (auto-save, create): only "Ingest current note" and folder ingest, which the user starts, upload it. Written against the `smartmemory-sdk-js` 2.0 receipt build (`rel-callers-jssdk-1`). Test fakes only, no live 2.0 producer yet.
 
 ### Fixed
 - Test (security, DEPS-SEC-FLOOR-GUARD-CLASS-1): `tests/deps-security-floor.test.ts` pins that its floor parser already refuses every range that can admit a version below the floor (`<6.4.3`, `<=6.4.3`, `^4.1.11-rc.0`, `^4.1.12 || 4.0.18`, wildcards, tags): one row per repro, each must be rejected. No behavior change.

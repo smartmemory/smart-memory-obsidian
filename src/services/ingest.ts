@@ -5,6 +5,7 @@ import type { SmartMemorySettings } from '../types';
 import { writeSmartMemoryFrontmatter, readSmartMemoryId } from '../bridge/frontmatter';
 import { parseOkf, type OkfDocument } from '../bridge/okf';
 import { isPathExcluded } from '../util/exclusions';
+import { readSaveReceipt, type SavedItem } from './save-receipt';
 
 export type IngestEvent =
 	| { type: 'ingest-start'; path: string }
@@ -45,6 +46,19 @@ export interface IngestFileOptions {
 	metadataOnly?: boolean;
 	/** Skip auto-enrichment poll after ingest. */
 	skipEnrichment?: boolean;
+	/**
+	 * The user asked for this ingest (command, folder batch). Only then may a
+	 * note whose item id matches no server item be uploaded; automatic saves
+	 * never upload an unmatched note (G136).
+	 */
+	userInitiated?: boolean;
+}
+
+export interface IngestFileResult {
+	itemId: string;
+	skipped?: 'excluded' | 'empty' | 'unmatched';
+	/** The note's own item id matched a server item, so it was adopted without a save. */
+	adopted?: boolean;
 }
 
 /**
@@ -110,7 +124,30 @@ export class IngestService {
 		void Promise.resolve(this.onMappingsChanged?.()).catch(() => {});
 	}
 
-	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<{ itemId: string; skipped?: 'excluded' | 'empty' }> {
+	/** The server item for `id`, or null when it is gone (404, or a 200 naming no item). Other failures rethrow so the caller can retry. */
+	private async remoteItem(id: string): Promise<any | null> {
+		try {
+			const remote: any = await this.client.memories.get(id);
+			return remote?.item_id ? remote : null;
+		} catch (err) {
+			if ((err as any)?.status === 404) return null;
+			throw err;
+		}
+	}
+
+	private async saveContent(content: string, path: string, okf: OkfDocument | null): Promise<SavedItem> {
+		const receipt = await this.client.memories.ingest(content, { context: ingestContext(path, okf) });
+		return readSaveReceipt(receipt, path);
+	}
+
+	/** A note whose item id matches no server item: nothing is uploaded; the user decides. */
+	private unmatched(path: string, id: string): IngestFileResult {
+		console.warn('[smartmemory] note carries an item id no server item matches; not uploading it until you ingest it yourself', path, id);
+		this.emit({ type: 'ingest-error', path, error: `unmatched: item ${id} not found on the server; run "Ingest current note" to upload it` });
+		return { itemId: '', skipped: 'unmatched' };
+	}
+
+	async ingestFile(file: TFile, options: IngestFileOptions = {}): Promise<IngestFileResult> {
 		const excluded = () => isPathExcluded(file.path, this.settings, 'ingest-file');
 		if (excluded()) return { itemId: '', skipped: 'excluded' };
 		this.emit({ type: 'ingest-start', path: file.path });
@@ -143,6 +180,8 @@ export class IngestService {
 			const existingId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, this.settings.workspaceId);
 
 			let itemId: string;
+			let saved: SavedItem | undefined;
+			let adopted = false;
 			if (options.metadataOnly && existingId) {
 				// Metadata-only: PUT update, skip pipeline re-extraction.
 				// MemoriesAPI.update accepts { metadata } directly (deep-merged).
@@ -155,75 +194,73 @@ export class IngestService {
 				// short-circuiting. Only re-ingest on a true 404; on transient
 				// failures (5xx, network) we re-throw so the caller can retry,
 				// rather than silently creating a duplicate remote memory.
-				let remoteMissing = false;
-				try {
-					const remote: any = await this.client.memories.get(existingId);
-					if (excluded()) return { itemId: '', skipped: 'excluded' };
-					if (remote?.item_id) {
-						this.emit({ type: 'ingest-complete', path: file.path, itemId: existingId });
-						return { itemId: existingId };
-					}
-					// 200 with no item_id is treated as missing
-					remoteMissing = true;
-				} catch (err) {
-					const status = (err as any)?.status;
-					if (status === 404) {
-						remoteMissing = true;
-					} else {
-						// Transient — let the caller decide (retry, surface, etc.)
-						throw err;
-					}
+				const remote = await this.remoteItem(existingId);
+				if (excluded()) return { itemId: '', skipped: 'excluded' };
+				if (remote) {
+					this.emit({ type: 'ingest-complete', path: file.path, itemId: existingId });
+					return { itemId: existingId };
 				}
-				if (remoteMissing) {
-					if (excluded()) return { itemId: '', skipped: 'excluded' };
-					this.store.handleDelete(file.path);
-					const result = await this.client.memories.ingest(content, {
-						context: ingestContext(file.path, okf),
-					});
-					itemId = result.item_id;
-				} else {
-					// Defensive: should not be reachable, but keeps types sound
+				// The note's item is gone from the server. Uploading it again is a
+				// new save of an unmatched note: only when the user asked.
+				if (!options.userInitiated) return this.unmatched(file.path, existingId);
+				this.store.handleDelete(file.path);
+				saved = await this.saveContent(content, file.path, okf);
+				itemId = saved.itemId;
+			} else if (existingId && oldHash === undefined) {
+				// Adoption (G136). The note already carries an item id (frontmatter
+				// or a restored mapping) but this device never synced it. When the
+				// server holds that item, adopt it by id: record the mapping, the
+				// content baseline and the revision, and make NO ingest call. When
+				// nothing matches, it is an unmatched note and is not uploaded
+				// unless the user asked.
+				const remote = await this.remoteItem(existingId);
+				if (excluded()) return { itemId: '', skipped: 'excluded' };
+				if (remote) {
 					itemId = existingId;
+					adopted = true;
+					if (typeof remote.revision === 'number') saved = { itemId, revision: remote.revision };
+				} else {
+					if (!options.userInitiated) return this.unmatched(file.path, existingId);
+					this.store.handleDelete(file.path);
+					saved = await this.saveContent(content, file.path, okf);
+					itemId = saved.itemId;
 				}
 			} else {
 				// First time OR content changed.
 				//
-				// WORKAROUND for missing server-side ingest dedupe.
-				// Tracked as CORE-INGEST-DEDUPE-1
-				// (smart-memory-docs/docs/features/CORE-INGEST-DEDUPE-1/design.md).
-				// Once that ships, /memory/ingest will dedupe by
-				// (tenant, origin, source_path) and return status=unchanged
-				// or status=replaced. At that point the delete-then-ingest
-				// dance below becomes unnecessary and should be removed.
-				//
-				// Why we still need it today: /memory/ingest always creates
-				// a new server item, so without deleting the prior one
-				// every save with edits would orphan a duplicate
-				// (the feedback loop seen in Phase 7 E2E — 124 memories
-				// from one note).
+				// An edit of a note whose item is on the server replaces that item:
+				// delete it, then save the new content. The server-side source-path
+				// dedupe (CORE-INGEST-DEDUPE-1, COMPLETE 2026-06-08) is scoped to
+				// `import:*` and `code:index` origins, so this client-side
+				// delete-then-save stays for the Obsidian origin (unverified for
+				// the 2.0 receipt path, no live producer yet).
+				let unmatchedId: string | null = null;
 				if (existingId) {
 					try {
 						await (this.client as any).memories.delete(existingId);
 					} catch (err) {
-						// 404 = already gone, fine. Other errors: log and
-						// proceed — orphaning is preferable to refusing to
-						// ingest the user's edited content.
+						// 404 = the item is already gone: this note no longer matches a
+						// server item. Other errors: log and proceed, orphaning is
+						// preferable to refusing to save the user's edited content.
 						const status = (err as any)?.status;
-						if (status !== 404) {
+						if (status === 404) {
+							unmatchedId = existingId;
+						} else {
 							console.warn('[smartmemory] pre-ingest delete failed', existingId, err);
 						}
 					}
+					if (unmatchedId && !options.userInitiated) return this.unmatched(file.path, unmatchedId);
 					this.store.handleDelete(file.path);
 				}
-				const context = ingestContext(file.path, okf);
 				if (excluded()) return { itemId: '', skipped: 'excluded' };
-				const result = await this.client.memories.ingest(content, { context });
-				itemId = result.item_id;
+				saved = await this.saveContent(content, file.path, okf);
+				itemId = saved.itemId;
 			}
 
 			if (excluded()) return { itemId: '', skipped: 'excluded' };
 			this.store.set(file.path, itemId);
 			this.store.setContentHash(file.path, newHash);
+			if (saved) this.store.setRevision(file.path, saved.revision);
 			this.notifyMappingsChanged();
 
 			// Mark before writing so the modify event fired by our own write
@@ -254,7 +291,7 @@ export class IngestService {
 				console.log('[smartmemory] enrichment skipped (skipEnrichment=true) for', file.path);
 			}
 
-			return { itemId };
+			return adopted ? { itemId, adopted } : { itemId };
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			this.emit({ type: 'ingest-error', path: file.path, error: message });
@@ -412,7 +449,7 @@ export class IngestService {
 					const idx = nextIndex++;
 					const file = queue[idx];
 					try {
-						const result = await this.ingestFile(file, { skipEnrichment: true });
+						const result = await this.ingestFile(file, { skipEnrichment: true, userInitiated: true });
 						if (result.skipped) skipped++;
 						else succeeded++;
 					} catch {

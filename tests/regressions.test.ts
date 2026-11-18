@@ -66,16 +66,28 @@ describe('regression: ingest 5xx must not duplicate-ingest (Codex MUST-FIX #1)',
 		expect(store.getMemoryId('a.md')).toBe('item-1');
 	});
 
-	it('true 404 on the existence check drops mapping and re-ingests', async () => {
+	it('true 404 on the existence check, user-initiated: drops mapping and re-ingests', async () => {
 		const file = { path: 'a.md', _content: 'unchanged' };
 		await service.ingestFile(file as any);
 		client.memories.ingest.mockClear();
 		client.memories.ingest.mockResolvedValueOnce({ item_id: 'item-2' });
 		client.memories.get.mockRejectedValueOnce(Object.assign(new Error('not found'), { status: 404 }));
 
-		const result = await service.ingestFile(file as any);
+		const result = await service.ingestFile(file as any, { userInitiated: true });
 		expect(result.itemId).toBe('item-2');
 		expect(client.memories.ingest).toHaveBeenCalledTimes(1);
+	});
+
+	it('true 404 on the existence check, automatic save: uploads nothing and keeps the mapping (G136)', async () => {
+		const file = { path: 'a.md', _content: 'unchanged' };
+		await service.ingestFile(file as any);
+		client.memories.ingest.mockClear();
+		client.memories.get.mockRejectedValueOnce(Object.assign(new Error('not found'), { status: 404 }));
+
+		const result = await service.ingestFile(file as any);
+		expect(result).toEqual({ itemId: '', skipped: 'unmatched' });
+		expect(client.memories.ingest).not.toHaveBeenCalled();
+		expect(store.getMemoryId('a.md')).toBe('item-1');
 	});
 });
 

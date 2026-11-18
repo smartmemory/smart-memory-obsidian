@@ -99,6 +99,8 @@ export interface VaultMappings {
 	memoryToFile: Record<string, string>;
 	entityToFile: Record<string, string>;
 	contentHashes: Record<string, string>;
+	/** file path -> item revision from the last save receipt (absent in older saved data). */
+	revisions?: Record<string, number>;
 	lastSyncTimestamp: string;
 }
 
