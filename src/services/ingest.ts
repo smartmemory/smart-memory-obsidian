@@ -282,13 +282,13 @@ export class IngestService {
 			this.emit({ type: 'ingest-complete', path: file.path, itemId });
 
 			if (!options.skipEnrichment) {
-				console.log('[smartmemory] kicking off enrichment poll for', file.path, itemId);
+				console.debug('[smartmemory] kicking off enrichment poll for', file.path, itemId);
 				// Fire-and-forget enrichment poll — don't block ingest completion
 				void this.enrichFile(file).catch((err) => {
 					console.error('[smartmemory] enrichFile threw', err);
 				});
 			} else {
-				console.log('[smartmemory] enrichment skipped (skipEnrichment=true) for', file.path);
+				console.debug('[smartmemory] enrichment skipped (skipEnrichment=true) for', file.path);
 			}
 
 			return adopted ? { itemId, adopted } : { itemId };
@@ -319,7 +319,7 @@ export class IngestService {
 		}
 
 		this.emit({ type: 'enrichment-start', path: file.path, itemId });
-		console.log('[smartmemory] enrichment polling start', file.path, itemId);
+		console.debug('[smartmemory] enrichment polling start', file.path, itemId);
 
 		// Extracted entities live as graph neighbors (link_type=CONTAINS_ENTITY,
 		// memory_type=entity), NOT as item.entities. The MemoryItem.entities
@@ -361,7 +361,7 @@ export class IngestService {
 				(n: any) => String(n?.link_type || '').toUpperCase() === 'CONTAINS_ENTITY',
 			);
 
-			console.log('[smartmemory] enrichment poll attempt', attempt + 1, {
+			console.debug('[smartmemory] enrichment poll attempt', attempt + 1, {
 				itemId,
 				totalNeighbors: neighbors.length,
 				entityCount: entityNeighbors.length,
@@ -421,7 +421,7 @@ export class IngestService {
 				this.notifyMappingsChanged();
 
 				this.emit({ type: 'enrichment-complete', path: file.path, itemId });
-				console.log('[smartmemory] enrichment complete', file.path, `${entities.length} entities`);
+				console.debug('[smartmemory] enrichment complete', file.path, `${entities.length} entities`);
 				return;
 			}
 		}

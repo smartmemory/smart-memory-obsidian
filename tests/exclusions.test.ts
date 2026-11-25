@@ -36,7 +36,7 @@ async function recall(h: Vault, selection: boolean) {
 		return this.onOpen();
 	});
 	registerSearchCommands(h.plugin);
-	await h.commands.get('smartmemory-recall-current-note').callback();
+	await h.commands.get('recall-current-note').callback();
 	await h.flush();
 }
 
@@ -45,12 +45,12 @@ async function recall(h: Vault, selection: boolean) {
 const paths: Array<{ name: string; api: boolean; rewrite: boolean; run: (h: Vault) => Promise<unknown> }> = [
 	{ name: 'manual-ingest', api: true, rewrite: true, run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-ingest-current-note').callback();
+		await h.commands.get('ingest-current-note').callback();
 		await h.flush();
 	} },
 	{ name: 'folder-ingest', api: true, rewrite: true, run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-ingest-folder').callback();
+		await h.commands.get('ingest-folder').callback();
 	} },
 	{ name: 'auto-modify', api: true, rewrite: true, run: h => auto(h, 'modify') },
 	{ name: 'auto-create', api: true, rewrite: true, run: h => auto(h, 'create') },
@@ -70,7 +70,7 @@ const paths: Array<{ name: string; api: boolean; rewrite: boolean; run: (h: Vaul
 	} },
 	{ name: 'enrichment', api: true, rewrite: true, run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-enrich-current-note').callback();
+		await h.commands.get('enrich-current-note').callback();
 	} },
 	{ name: 'startup-migration', api: false, rewrite: true, run: h => h.plugin.initializeOkfFrontmatter() },
 	{ name: 'frontmatter-write', api: false, rewrite: true, run: h => writeSmartMemoryFrontmatter(h.app, h.file, { id: 'item-1' }, h.settings) },
@@ -89,7 +89,7 @@ const paths: Array<{ name: string; api: boolean; rewrite: boolean; run: (h: Vaul
 	} },
 	{ name: 'autolink-command', api: true, rewrite: false, run: async h => {
 		registerAutolinkCommand(h.plugin);
-		await h.commands.get('smartmemory-autolink-current-note').callback();
+		await h.commands.get('autolink-current-note').callback();
 	} },
 	{ name: 'autolink-apply', api: false, rewrite: true, run: async h => {
 		// The callback stays live if exclusions change while a preview is open.

@@ -1,2 +1,3 @@
 #!/usr/bin/env sh
-node scripts/bump-patch.mjs
+# Version follows the core release (scripts/set-version.mjs); no auto-bump.
+node scripts/set-version.mjs --check

@@ -110,11 +110,11 @@ export class VaultEvents {
 			console.debug('[smartmemory] auto-ingest skipped — batch in progress', file.path);
 			return;
 		}
-		console.log('[smartmemory] auto-ingest firing', file.path);
+		console.debug('[smartmemory] auto-ingest firing', file.path);
 		try {
 			const result = await service.ingestFile(file);
 			if (result.skipped) return;
-			console.log('[smartmemory] auto-ingest succeeded', file.path);
+			console.debug('[smartmemory] auto-ingest succeeded', file.path);
 		} catch (err) {
 			// Surface failures so users notice them; previous silent catch hid
 			// real bugs (HTTP 422, auth issues, contract drift) for entire test

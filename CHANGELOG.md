@@ -2,11 +2,27 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## 2.0.6 - 2026-11-25
+
+First GitHub release since 0.2.18. The plugin version now equals the SmartMemory core release it ships with (core 2.0.6). Prepared for Obsidian's Community directory (OBSIDIAN-RELEASE-SYNC-SUBMIT-1).
+
+### Changed
+- **Command IDs no longer repeat the plugin ID** (Obsidian submission requirement). `smartmemory:smartmemory-open-search` is now `smartmemory:open-search`, and the same for all 14 commands. A custom hotkey you set on a SmartMemory command before 2.0.6 must be set again in Settings → Hotkeys.
+- **No default hotkey.** "Recall related memories for current note" no longer ships with a default hotkey, so it cannot clash with yours. Assign one in Settings → Hotkeys.
+- Settings tab uses Obsidian's own section headings (sentence case, no top-level "SmartMemory" title). The plaintext-key warning names your vault's real config folder instead of assuming `.obsidian`.
+- Graph pane, status-bar menu and the enrichment "Retry" link take their layout from `styles.css` classes instead of inline styles, so themes can restyle them.
+- Routine progress logging moved from `console.log` to `console.debug`. Errors and warnings are unchanged.
+- Manifest description rewritten to the directory's rules (short, ends with a period, no special characters).
+- Versioning: `scripts/set-version.mjs <x.y.z>` sets `manifest.json`, `package.json` and `versions.json` together. The pre-commit hook now only checks that the three agree (`--check`). The old per-commit patch bump (`scripts/bump-patch.mjs`) is removed, since it moved the version away from the core release.
+
+### Verified
+- Read calls checked against the live 2.0.6 service with a test account: workspace discovery, memory list, get, lineage, neighbors, graph, decisions. All returned 200. The write and search endpoints the plugin uses exist in the live 2.0.6 API schema.
+
 ## 2.0.1
 
 Version bump to 2.0.1, every SmartMemory repo reads the same version (REL-2.0-VERSION-BUMP-2.0.1-1).
 
-## Unreleased
+## 2.0 branch work (first released in 2.0.6)
 
 ### Changed
 - REL-CALLERS-FIRSTPARTY-1: saves read the SmartMemory 2.0 save receipt (item id from `subject.item_id`, plus the revision, kept per note) instead of a bare `{item_id}`. A receipt that names no item or carries an admission error is a typed refusal and maps nothing. A note that already carries an item id the server holds is adopted by that id with no save call. A note whose item id matches no server item is never uploaded automatically (auto-save, create): only "Ingest current note" and folder ingest, which the user starts, upload it. Written against the `smartmemory-sdk-js` 2.0 receipt build (`rel-callers-jssdk-1`). Test fakes only, no live 2.0 producer yet.

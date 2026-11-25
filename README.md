@@ -6,17 +6,21 @@ Bring [SmartMemory](https://smartmemory.ai)'s entity extraction, knowledge graph
 
 ## Features
 
-- **Vault ingest** — turn any note into a structured memory item with extracted entities and relations.
-- **Search & Recall** — multi-hop semantic search across your whole vault from a sidebar pane or `Cmd+Shift+R` floating modal.
-- **Entity backlinks** — auto-extracted entities become clickable chips that find every note referencing the same person, project, or concept.
-- **Knowledge graph pane** — focused N-hop neighborhood graph centered on the active note.
-- **Auto-link** — propose `[[wikilinks]]` for entity mentions; preview-and-accept never modifies code blocks, frontmatter, or existing links.
-- **Inline suggestions** — debounced "Related: [[Note A]], [[Note B]]" widget while you type (opt-in).
-- **Contradiction banner** — when a memory has been superseded server-side, you see it inline with a "View derivation history" button.
+- **Vault ingest:** turn any note into a structured memory item with extracted entities and relations.
+- **Search & Recall:** multi-hop semantic search across your whole vault from a sidebar pane or a floating recall modal (assign it a hotkey in Settings → Hotkeys).
+- **Entity backlinks:** auto-extracted entities become clickable chips that find every note referencing the same person, project, or concept.
+- **Knowledge graph pane:** focused N-hop neighborhood graph centered on the active note.
+- **Auto-link:** propose `[[wikilinks]]` for entity mentions. Preview-and-accept never modifies code blocks, frontmatter, or existing links.
+- **Inline suggestions:** debounced "Related: [[Note A]], [[Note B]]" widget while you type (opt-in).
+- **Contradiction banner:** when a memory has been superseded server-side, you see it inline with a "View derivation history" button.
 
 ## Install
 
-### Via BRAT (recommended while we are pre-directory)
+### From the Obsidian Community directory
+
+The SmartMemory listing in Obsidian's Community directory is in review. Once it is published, open Settings → Community plugins → Browse, search for "SmartMemory", then select Install and Enable. Until then, use BRAT or a manual install.
+
+### Via BRAT
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from the community directory.
 2. Open BRAT settings → "Add Beta Plugin" → paste `smartmemory/smart-memory-obsidian` → Add.
@@ -27,10 +31,6 @@ Bring [SmartMemory](https://smartmemory.ai)'s entity extraction, knowledge graph
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/smartmemory/smart-memory-obsidian/releases/latest).
 2. Drop them into `<your-vault>/.obsidian/plugins/smartmemory/`.
 3. Enable "SmartMemory" in Settings → Community plugins.
-
-### Coming soon
-
-Direct install from Obsidian's Community plugin directory (submission pending).
 
 ## Setup
 
@@ -45,14 +45,14 @@ API key can also be supplied via the `SMARTMEMORY_API_KEY` environment variable,
 - All network calls go to your configured SmartMemory API URL (default: `https://api.smartmemory.ai`).
 - Note content sent on ingest, search, and recall is processed server-side for entity extraction and embedding. Your data lives in your SmartMemory workspace under your account.
 - The plugin stores a local mapping (`<plugin-data>/data.json`) of vault path → SmartMemory item ID and a content hash for re-ingest detection. No vault content is logged anywhere outside Obsidian and your SmartMemory account.
-- The plugin does not collect telemetry. The status-bar connection probe (a single `GET /memory/list?limit=1` on load) is the only background call.
+- The plugin does not collect telemetry. On load it makes two background calls: `GET /auth/me` to find your default workspace (cloud mode, only when no workspace ID is set) and the status-bar connection probe (`GET /memory/list?limit=1`). Automatic ingest on save and on create and the hourly contradiction sweep are on by default and send note content or item IDs to the API. Inline suggestions call the API while you type once you turn them on. Each can be turned off in the plugin's settings.
 
 ## Quotas & free tier
 
 - Free tier: **1,000 notes**, **200 searches/day**.
-- Hitting the note cap: ingest returns 429; the plugin shows an upgrade modal.
-- Hitting the daily search cap: search returns 429; a non-blocking notice surfaces.
-- Both errors are non-destructive — the plugin never deletes vault content.
+- Hitting the note cap: ingest returns 429 and the plugin shows an upgrade modal.
+- Hitting the daily search cap: search returns 429 and a non-blocking notice surfaces.
+- Both errors are non-destructive. The plugin never deletes vault content.
 
 ## Settings reference
 
@@ -72,7 +72,7 @@ explains that the note is empty. Folder summaries count empty notes as skipped.
 ## Compatibility
 
 - Obsidian **1.5.0** and above.
-- Desktop and mobile (the plugin sets `isDesktopOnly: false`; mobile is supported but the graph pane is bandwidth-heavier than the rest).
+- Desktop and mobile (the plugin sets `isDesktopOnly: false`). Mobile is supported, but the graph pane uses more bandwidth than the rest.
 
 ## Build from source
 
@@ -125,7 +125,17 @@ The header records the SDK commit and whether tracked edits or non-ignored
 untracked files were present. Use a clean SDK checkout (`dirty=false`) for
 release provenance. Retain this header in the release's `main.js`, alongside
 `manifest.json` and `styles.css`. Building does not change the plugin version
-or publish a release. Dependency versions and the graph checkout still need to
+or publish a release.
+
+## Versioning and releases
+
+The plugin version equals the SmartMemory core release it ships with (2.0.6
+ships with core 2.0.6). Set it with `node scripts/set-version.mjs <x.y.z>`,
+which updates `manifest.json`, `package.json` and `versions.json` together. The
+pre-commit hook runs `node scripts/set-version.mjs --check` and refuses a commit
+where the three disagree. Obsidian installs the GitHub release whose tag equals
+the `manifest.json` version exactly (no `v` prefix), with `main.js`,
+`manifest.json` and `styles.css` attached. Dependency versions and the graph checkout still need to
 be held constant for byte-identical builds.
 
 Run the focused build regression with the same environment variables:
@@ -145,4 +155,4 @@ SDK rebuilding and provenance apply to `npm run build`.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE).

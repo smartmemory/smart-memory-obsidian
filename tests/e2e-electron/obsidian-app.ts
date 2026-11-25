@@ -57,7 +57,7 @@ export interface ObsidianHarness {
 	mockRequests: Array<{ method: string; path: string; query: Record<string, string> }>;
 	/** Open a vault note by path (e.g. "Decisions Source.md") via Obsidian's own API. */
 	openNote(path: string): Promise<void>;
-	/** Run a plugin command by id (e.g. "smartmemory-open-decisions-panel"). */
+	/** Run a plugin command by id (e.g. "open-decisions-panel"). */
 	runCommand(id: string): Promise<void>;
 	/** Path of the currently active markdown file, or null. */
 	activeNotePath(): Promise<string | null>;

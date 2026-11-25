@@ -63,16 +63,14 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'SmartMemory' });
-
 		const securityWarning = containerEl.createDiv({ cls: 'smartmemory-warning' });
 		securityWarning.setText(
 			'Your API key is stored locally in plaintext. If you sync your vault via git, ' +
-			'add `.obsidian/plugins/smartmemory/data.json` to `.gitignore`.'
+			`add \`${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}/data.json\` to \`.gitignore\`.`
 		);
 
 		// Auth
-		containerEl.createEl('h3', { text: 'Connection' });
+		new Setting(containerEl).setName('Connection').setHeading();
 
 		// DIST-OBSIDIAN-LITE-1: Cloud / Lite mode radio
 		new Setting(containerEl)
@@ -170,7 +168,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 			});
 
 		// Ingest
-		containerEl.createEl('h3', { text: 'Ingest' });
+		new Setting(containerEl).setName('Ingest').setHeading();
 
 		new Setting(containerEl)
 			.setName('Auto-ingest on save')
@@ -194,7 +192,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Exclude folders')
-			.setDesc('Comma-separated path prefixes excluded from all note sends and edits (e.g. templates/, .obsidian/). Case-insensitive, including subfolders. Without a trailing /, an entry also matches sibling names that start with it. Add / to match only that folder and its subfolders.')
+			.setDesc('Comma-separated path prefixes excluded from all note sends and edits (e.g. templates/, archive/). Case-insensitive, including subfolders. Without a trailing /, an entry also matches sibling names that start with it. Add / to match only that folder and its subfolders.')
 			.addText(text => text
 				.setValue(this.plugin.settings.excludeFolders.join(','))
 				.onChange((value) => {
@@ -203,7 +201,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 				}));
 
 		// Frontmatter
-		containerEl.createEl('h3', { text: 'Frontmatter' });
+		new Setting(containerEl).setName('Frontmatter').setHeading();
 
 		this.addToggle(
 			containerEl,
@@ -219,7 +217,7 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 		);
 
 		// Suggestions
-		containerEl.createEl('h3', { text: 'Inline Suggestions' });
+		new Setting(containerEl).setName('Inline suggestions').setHeading();
 
 		this.addToggle(containerEl, 'Enable inline suggestions', 'Show related-memory suggestions while typing (off by default)', 'inlineSuggestionsEnabled');
 
@@ -237,12 +235,12 @@ export class SmartMemorySettingTab extends PluginSettingTab {
 				}));
 
 		// Contradiction detection
-		containerEl.createEl('h3', { text: 'Contradiction Detection' });
+		new Setting(containerEl).setName('Contradiction detection').setHeading();
 
 		this.addToggle(containerEl, 'Show supersession banner', 'Warn when a note has been superseded', 'contradictionBannerEnabled');
 
 		// Graph
-		containerEl.createEl('h3', { text: 'Knowledge Graph' });
+		new Setting(containerEl).setName('Knowledge graph').setHeading();
 
 		new Setting(containerEl)
 			.setName('Default hops')
