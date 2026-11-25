@@ -555,11 +555,6 @@
 	color: var(--text-muted);
 	margin-left: 0.4em;
 }
-.smartmemory-search-origin-unknown {
-	background-color: var(--background-modifier-error-rgb, rgba(225, 75, 75, 0.15));
-	color: var(--text-error, #e25c5c);
-	border: 1px dashed var(--text-error, #e25c5c);
-}
 
 /* === Graph-view chrome theming (Obsidian-native) ===
  * Scoped under .smartmemory-graph-view so it only affects the embedded

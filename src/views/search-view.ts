@@ -165,20 +165,15 @@ export class SearchView extends ItemView {
 					text: result.score.toFixed(2),
 				});
 			}
-			// Surface origin per result so write-path bugs (e.g. server-side
-			// origin propagation, see CORE-ORIGIN-PROPAGATION-1) are visible
-			// at a glance instead of needing the Insights inspector. Items
-			// tagged "unknown" get a flagged class so users see it stands out.
+			// Surface origin per result so write-path bugs are visible at a glance.
+			// An unknown origin is shown plainly like any other value (no flag, no warning
+			// tooltip): UI-ORIGIN-UNKNOWN-NEUTRAL-1.
 			const origin = result.origin || 'unknown';
 			const originEl = header.createSpan({
-				cls: origin === 'unknown'
-					? 'smartmemory-search-origin smartmemory-search-origin-unknown'
-					: 'smartmemory-search-origin',
+				cls: 'smartmemory-search-origin',
 				text: origin,
 			});
-			originEl.title = origin === 'unknown'
-				? 'No origin tag — likely a server-side propagation bug. See CORE-ORIGIN-PROPAGATION-1.'
-				: `Origin: ${origin}`;
+			originEl.title = `Origin: ${origin}`;
 
 			card.createDiv({ cls: 'smartmemory-search-title', text: result.title });
 			card.createDiv({ cls: 'smartmemory-search-snippet', text: result.snippet });
