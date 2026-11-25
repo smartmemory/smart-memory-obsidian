@@ -40,22 +40,9 @@ export class GraphView extends ItemView {
 		// Tailwind utilities ship under .smartmemory-graph-view; the wrapper
 		// is required for the GraphExplorer subtree to pick them up.
 		this.rootEl.addClass('smartmemory-graph-view');
-		// Force the wrapper to behave as a flex column with definite height so
-		// GraphExplorer's `h-full w-full` and CytoscapeCanvas's `flex-1` can
-		// resolve to non-zero pixel dimensions. Without these, cose-bilkent
-		// runs against a 0×0 container and every node settles at (0, 0).
-		this.rootEl.style.display = 'flex';
-		this.rootEl.style.flexDirection = 'column';
-		this.rootEl.style.height = '100%';
-		this.rootEl.style.width = '100%';
-		this.rootEl.style.padding = '0';
-
+		// Layout (flex column, definite size) comes from styles.css:
+		// .smartmemory-graph-view and .smartmemory-graph-mount.
 		const mount = this.rootEl.createDiv({ cls: 'smartmemory-graph-mount' });
-		mount.style.flex = '1 1 auto';
-		mount.style.minHeight = '0';
-		mount.style.display = 'flex';
-		mount.style.flexDirection = 'column';
-		mount.style.width = '100%';
 
 		this.reactRoot = createRoot(mount);
 		this.render();

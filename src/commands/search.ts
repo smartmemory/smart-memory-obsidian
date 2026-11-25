@@ -20,44 +20,43 @@ async function openInRightSidebar(plugin: SmartMemoryPlugin, viewType: string): 
 		await right.setViewState({ type: viewType, active: true });
 		leaf = workspace.getLeavesOfType(viewType)[0];
 	}
-	workspace.revealLeaf(leaf);
+	void workspace.revealLeaf(leaf);
 }
 
 export function registerSearchCommands(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
-		id: 'smartmemory-open-search',
+		id: 'open-search',
 		name: 'Open search sidebar',
 		callback: () => openInRightSidebar(plugin, SEARCH_VIEW_TYPE),
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-open-entities',
+		id: 'open-entities',
 		name: 'Open entity backlinks sidebar',
 		callback: () => openInRightSidebar(plugin, ENTITY_VIEW_TYPE),
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-open-lineage-panel',
+		id: 'open-lineage-panel',
 		name: 'Open lineage sidebar',
 		callback: () => openInRightSidebar(plugin, LINEAGE_PANEL_TYPE),
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-open-supersessions-panel',
+		id: 'open-supersessions-panel',
 		name: 'Open supersessions sidebar',
 		callback: () => openInRightSidebar(plugin, SUPERSESSIONS_PANEL_TYPE),
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-open-decisions-panel',
+		id: 'open-decisions-panel',
 		name: 'Open decisions sidebar',
 		callback: () => openInRightSidebar(plugin, DECISIONS_PANEL_TYPE),
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-recall-current-note',
+		id: 'recall-current-note',
 		name: 'Recall related memories for current note',
-		hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'r' }],
 		callback: async () => {
 			// Prefer an active editor selection; fall back to the active file's
 			// content. We deliberately do NOT require focus to be inside the

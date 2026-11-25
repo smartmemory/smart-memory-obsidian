@@ -30,9 +30,9 @@ it.each(['ingest', 'enrich', 'autolink', 'recall', 'import'])('explains excluded
 			h.settings.excludeFolders.push('SmartMemory Imports/');
 			await (new RecallModal(h.app, h.plugin, '') as any).createNoteFromResult({ title: 'Imported', content: 'body' });
 		} else {
-			const id = action === 'ingest' ? 'smartmemory-ingest-current-note' : action === 'enrich'
-				? 'smartmemory-enrich-current-note' : action === 'autolink'
-					? 'smartmemory-autolink-current-note' : 'smartmemory-recall-current-note';
+			const id = action === 'ingest' ? 'ingest-current-note' : action === 'enrich'
+				? 'enrich-current-note' : action === 'autolink'
+					? 'autolink-current-note' : 'recall-current-note';
 			await h.commands.get(id).callback();
 		}
 		expect(Notice.lastMessage ?? '').toMatch(/excluded/i);
@@ -76,18 +76,18 @@ const emptyCallers: Array<{
 	} },
 	{ name: 'current-note command (explicit)', body: '', feedback: 'note', run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-ingest-current-note').callback();
+		await h.commands.get('ingest-current-note').callback();
 	} },
 	{ name: 'current-note command, frontmatter only (explicit)', body: frontmatterOnly, feedback: 'note', run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-ingest-current-note').callback();
+		await h.commands.get('ingest-current-note').callback();
 	} },
 	{ name: 'folder worker (automatic per note)', body: frontmatterOnly, feedback: 'quiet', run: async h => {
 		expect(await h.service.ingestFolder([h.file])).toEqual({ succeeded: 0, failed: 0, skipped: 1 });
 	} },
 	{ name: 'folder command (explicit summary)', body: '', feedback: 'batch', run: async h => {
 		registerIngestCommands(h.plugin);
-		await h.commands.get('smartmemory-ingest-folder').callback();
+		await h.commands.get('ingest-folder').callback();
 	} },
 	{ name: 'shared auto-ingest handler (automatic)', body: frontmatterOnly, feedback: 'quiet', run: async h => {
 		await (new VaultEvents(h.plugin) as any).runAutoIngest(h.file, 'auto-modify');
@@ -156,7 +156,7 @@ it.each(['autolink candidates', 'autolink preview', 'recall', 'recall unmapped t
 		if (surface === 'autolink candidates') {
 			const opened = vi.spyOn(AutolinkModal.prototype, 'open');
 			registerAutolinkCommand(h.plugin);
-			await h.commands.get('smartmemory-autolink-current-note').callback();
+			await h.commands.get('autolink-current-note').callback();
 			expect(opened).not.toHaveBeenCalled();
 		} else if (surface === 'autolink preview') {
 			const preview = new AutolinkModal(h.app, h.file, h.initial, [{

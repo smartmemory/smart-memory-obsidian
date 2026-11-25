@@ -86,7 +86,6 @@ export class StatusBarController {
 
 		const menu = document.body.createDiv({ cls: 'smartmemory-status-menu' });
 		const rect = this.el.getBoundingClientRect();
-		menu.style.position = 'fixed';
 		menu.style.bottom = `${window.innerHeight - rect.top + 4}px`;
 		menu.style.right = `${window.innerWidth - rect.right}px`;
 

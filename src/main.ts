@@ -67,8 +67,8 @@ export default class SmartMemoryPlugin extends Plugin {
 		const statusEl = this.addStatusBarItem();
 		this.statusBar = new StatusBarController(statusEl);
 		this.statusBar.setActions({
-			onIngest: () => this.runCommand('smartmemory-ingest-current-note'),
-			onSearch: () => this.runCommand('smartmemory-open-search'),
+			onIngest: () => this.runCommand('ingest-current-note'),
+			onSearch: () => this.runCommand('open-search'),
 			onSettings: () => (this.app as any).setting?.open?.(),
 			onUpgrade: () => window.open(UPGRADE_URL, '_blank'),
 		});
@@ -114,12 +114,12 @@ export default class SmartMemoryPlugin extends Plugin {
 		this.registerView(DECISIONS_PANEL_TYPE, (leaf) => new DecisionsPanel(leaf, this));
 
 		this.addCommand({
-			id: 'smartmemory-open-graph',
+			id: 'open-graph',
 			name: 'Open knowledge graph pane',
 			callback: async () => {
 				const leaf = this.app.workspace.getLeaf();
 				await leaf.setViewState({ type: GRAPH_VIEW_TYPE, active: true });
-				this.app.workspace.revealLeaf(leaf);
+				void this.app.workspace.revealLeaf(leaf);
 			},
 		});
 
@@ -129,7 +129,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		// when an id collides.
 
 		this.addCommand({
-			id: 'smartmemory-purge-obsidian-origin',
+			id: 'purge-obsidian-origin',
 			name: 'Danger: purge all Obsidian-origin memories from this workspace',
 			callback: async () => {
 				await this.purgeObsidianOriginMemories();
@@ -137,7 +137,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'smartmemory-purge-empty-memories',
+			id: 'purge-empty-memories',
 			name: 'Purge empty-content memories (legacy YAML-only ingests)',
 			callback: async () => {
 				await this.purgeEmptyContentMemories();
@@ -145,7 +145,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'smartmemory-diagnose-loop',
+			id: 'diagnose-loop',
 			name: 'Diagnose ingest loop (counts memories, prints to console)',
 			callback: async () => {
 				await this.diagnoseLoop();
@@ -207,7 +207,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		// Always log full state so support can ask the user to copy the
 		// console line verbatim. /smartmemory diagnose offers the same
 		// readout on demand for users who can't open devtools.
-		console.log('[smartmemory] load state', {
+		console.debug('[smartmemory] load state', {
 			version: BUNDLE_TAG,
 			apiUrl: cfg.apiUrl,
 			hasApiKey: hasKey,
@@ -329,8 +329,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		fragment.appendChild(text);
 		const retry = document.createElement('a');
 		retry.textContent = 'Retry';
-		retry.style.cursor = 'pointer';
-		retry.style.textDecoration = 'underline';
+		retry.addClass('smartmemory-enrich-retry');
 		retry.addEventListener('click', () => {
 			const file = this.app.vault.getAbstractFileByPath(path);
 			if (file && this.ingestService) {
@@ -471,7 +470,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			}
 			this.settings.migratedOkfSettings = true;
 			await this.serializedSave();
-			console.log(
+			console.debug(
 				`[smartmemory] migrated OKF settings: okfConformance=${this.settings.okfConformance}, ` +
 				`writeSmartMemoryExtension=${this.settings.writeSmartMemoryExtension}`,
 			);
@@ -529,7 +528,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			changed++;
 		}
 		if (changed > 0) {
-			console.log(`[smartmemory] backfilled ${changed} mapping(s) from vault frontmatter`);
+			console.debug(`[smartmemory] backfilled ${changed} mapping(s) from vault frontmatter`);
 			await this.saveMappings();
 		}
 	}
@@ -625,7 +624,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			return;
 		}
 
-		console.log('[smartmemory] purging', toDelete.length, 'Obsidian-origin memories');
+		console.debug('[smartmemory] purging', toDelete.length, 'Obsidian-origin memories');
 		let succeeded = 0;
 		let failed = 0;
 		for (const id of toDelete) {
@@ -705,7 +704,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			return;
 		}
 
-		console.log('[smartmemory] purging', toDelete.length, 'empty-content memories');
+		console.debug('[smartmemory] purging', toDelete.length, 'empty-content memories');
 		let succeeded = 0;
 		let failed = 0;
 		for (const id of toDelete) {
@@ -776,7 +775,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			.map(([k, v]) => `${k}=${v}`)
 			.join(', ');
 		const summary = `total=${total} | ${breakdown} | active-note-mapped-id=${mappedId ?? '(none)'}`;
-		console.log('[smartmemory] diagnose-loop', { total, byOriginPrefix, mappedId });
+		console.debug('[smartmemory] diagnose-loop', { total, byOriginPrefix, mappedId });
 		new Notice(`SmartMemory diagnose: ${summary}`, 15000);
 	}
 
@@ -784,13 +783,13 @@ export default class SmartMemoryPlugin extends Plugin {
 		const ws = this.app.workspace;
 		const existing = ws.getLeavesOfType(viewType);
 		if (existing.length > 0) {
-			ws.revealLeaf(existing[0]);
+			void ws.revealLeaf(existing[0]);
 			return;
 		}
 		const leaf = ws.getRightLeaf(false);
 		if (!leaf) return;
 		await leaf.setViewState({ type: viewType, active: true });
-		ws.revealLeaf(leaf);
+		void ws.revealLeaf(leaf);
 	}
 
 	private runCommand(commandId: string): void {

@@ -100,14 +100,14 @@ const pendingPaths: Array<{ name: string; sent: number; run: (h: Vault) => Promi
 			return text;
 		};
 		registerSearchCommands(h.plugin);
-		await h.commands.get('smartmemory-recall-current-note').callback();
+		await h.commands.get('recall-current-note').callback();
 	} },
 	{ name: 'recall fallback file differs from editor', sent: 0, run: async h => {
 		// An editor can remain visible while workspace focus tracks another file.
 		h.view.file = { path: 'Public/other.md' };
 		h.settings.excludeFolders = ['Private/'];
 		registerSearchCommands(h.plugin);
-		await h.commands.get('smartmemory-recall-current-note').callback();
+		await h.commands.get('recall-current-note').callback();
 	} },
 	{ name: 'recall modal source renamed', sent: 0, run: async h => {
 		const preview = new RecallModal(h.app, h.plugin, 'captured note text', h.file);

@@ -1,19 +1,16 @@
 # Contributing
 
-## One-time setup
+## Versioning
 
-Activate the auto-bump pre-commit hook so commits to `src/` automatically bump the patch version (keeps `package.json`, `manifest.json`, and `versions.json` in lockstep with shipped bundles):
+The plugin version equals the SmartMemory core release it ships with. Do not bump it per commit. At a release cut:
 
 ```bash
-git config core.hooksPath .githooks
+node scripts/set-version.mjs 2.0.7   # manifest.json, package.json, versions.json
 ```
 
 ## Hook behavior
 
-- Triggers when staged files match `src/`, `manifest.json`, `esbuild.config.mjs`, `main.js`, or `styles.css`
-- If you already bumped the version in your commit, the hook validates `package.json` and `manifest.json` agree and exits clean
-- Otherwise it bumps patch (e.g. `0.1.2 → 0.1.3`) across all three files and stages them
-- Bypass with `SKIP_VERSION_BUMP=1 git commit ...` (use sparingly — docs-only commits are the legitimate case)
+`npm install` activates the husky pre-commit hook (`.husky/pre-commit`). It runs `node scripts/set-version.mjs --check`, which refuses a commit when `manifest.json`, `package.json` and `versions.json` disagree. It never changes the version. The legacy `.githooks/pre-commit` (`git config core.hooksPath .githooks`) runs the same check.
 
 ## Tests
 

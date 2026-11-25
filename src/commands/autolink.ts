@@ -9,7 +9,7 @@ import { isPathExcluded } from '../util/exclusions';
 
 export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
-		id: 'smartmemory-autolink-current-note',
+		id: 'autolink-current-note',
 		name: 'Auto-link entities in current note',
 		callback: async () => {
 			const file = plugin.app.workspace.getActiveFile();

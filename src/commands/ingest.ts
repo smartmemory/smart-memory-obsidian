@@ -5,7 +5,7 @@ import { isPathExcluded } from '../util/exclusions';
 
 export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
-		id: 'smartmemory-ingest-current-note',
+		id: 'ingest-current-note',
 		name: 'Ingest current note',
 		callback: async () => {
 			const file = plugin.app.workspace.getActiveFile();
@@ -36,7 +36,7 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-ingest-folder',
+		id: 'ingest-folder',
 		name: 'Ingest folder of current note',
 		callback: async () => {
 			const file = plugin.app.workspace.getActiveFile();
@@ -63,7 +63,7 @@ export function registerIngestCommands(plugin: SmartMemoryPlugin): void {
 	});
 
 	plugin.addCommand({
-		id: 'smartmemory-enrich-current-note',
+		id: 'enrich-current-note',
 		name: 'Enrich current note',
 		callback: async () => {
 			const file = plugin.app.workspace.getActiveFile();

@@ -16,11 +16,11 @@ const DECISIONS_CONTENT = `.workspace-leaf-content[data-type="${DECISIONS_VIEW}"
 test('core plugin commands are registered in the command palette', async ({ obsidian }) => {
 	const ids = await obsidian.commandIds();
 	for (const expected of [
-		'smartmemory:smartmemory-open-decisions-panel',
-		'smartmemory:smartmemory-open-lineage-panel',
-		'smartmemory:smartmemory-open-supersessions-panel',
-		'smartmemory:smartmemory-recall-current-note',
-		'smartmemory:smartmemory-ingest-current-note',
+		'smartmemory:open-decisions-panel',
+		'smartmemory:open-lineage-panel',
+		'smartmemory:open-supersessions-panel',
+		'smartmemory:recall-current-note',
+		'smartmemory:ingest-current-note',
 	]) {
 		expect(ids, `command ${expected} should be registered`).toContain(expected);
 	}
@@ -28,7 +28,7 @@ test('core plugin commands are registered in the command palette', async ({ obsi
 
 test('decisions panel reveals as a leaf in the right sidebar', async ({ obsidian }) => {
 	await obsidian.openNote('Decisions Source.md');
-	await obsidian.runCommand('smartmemory-open-decisions-panel');
+	await obsidian.runCommand('open-decisions-panel');
 
 	await expect
 		.poll(
@@ -48,7 +48,7 @@ test('decisions panel reveals as a leaf in the right sidebar', async ({ obsidian
 test('panel renders mock-backed rows for the active note and refreshes on note switch', async ({ obsidian }) => {
 	// Open the mapped note, then reveal the panel.
 	await obsidian.openNote('Decisions Source.md');
-	await obsidian.runCommand('smartmemory-open-decisions-panel');
+	await obsidian.runCommand('open-decisions-panel');
 
 	// Backbone assertion: the SDK call carried the active note's memory id.
 	await expect
