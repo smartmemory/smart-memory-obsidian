@@ -4,6 +4,7 @@ import { readSmartMemoryId } from '../bridge/frontmatter';
 import { RECALL_EXCLUDE_ORIGIN_PREFIXES } from '../services/search';
 import { entityNeighbors } from '../bridge/entity-edges';
 import { isPathExcluded } from '../util/exclusions';
+import { resourceWorkspace } from '../bridge/resource-workspace';
 
 export const ENTITY_VIEW_TYPE = 'smartmemory-entities';
 
@@ -53,7 +54,7 @@ export class EntityView extends ItemView {
 		}
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(target.path) ??
-			readSmartMemoryId(this.plugin.app, target, this.plugin.settings.workspaceId);
+			readSmartMemoryId(this.plugin.app, target, resourceWorkspace(this.plugin.settings));
 
 		if (!itemId) {
 			root.createDiv({

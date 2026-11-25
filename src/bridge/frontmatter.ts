@@ -2,6 +2,7 @@ import type { App, TFile } from 'obsidian';
 import type { SmartMemorySettings } from '../types';
 import { buildResource, parseResource } from './okf';
 import { isPathExcluded } from '../util/exclusions';
+import { ensureResourceWorkspace } from './resource-workspace';
 
 export interface EnrichmentData {
 	id: string;
@@ -40,14 +41,21 @@ export async function writeSmartMemoryFrontmatter(
 ): Promise<{ ok: true } | { ok: false; error: Error }> {
 	if (isPathExcluded(file.path, settings, 'frontmatter-write')) return { ok: true };
 	try {
+		// BUG-OBSIDIAN-LITE-SAVE-RECEIPT-1: Lite has no workspace id; its resources use the install's OKF namespace.
+		const workspace = await ensureResourceWorkspace(settings);
+		if (okfConformanceEnabled(settings) && !workspace) {
+			throw new Error(settings.mode === 'lite'
+				? 'SmartMemory Lite did not report its OKF namespace (/health okf_namespace); update SmartMemory Lite to write note ids'
+				: 'SmartMemory resource workspace must be non-empty');
+		}
 		await app.fileManager.processFrontMatter(file, (fm) => {
 			if (fm.smartmemory !== undefined && fm.smartmemory !== null && !isMapping(fm.smartmemory)) {
 				console.warn('[smartmemory] Rejecting invalid OKF smartmemory extension: expected a mapping', fm.smartmemory);
 				throw new Error('OKF smartmemory extension must be a mapping');
 			}
-			migrateLegacyFrontmatter(fm, settings.workspaceId);
+			migrateLegacyFrontmatter(fm, workspace);
 			if (okfConformanceEnabled(settings)) {
-				fm.resource = buildResource(settings.workspaceId, data.id);
+				fm.resource = buildResource(workspace, data.id);
 				fm.type = data.memoryType || (typeof fm.type === 'string' && fm.type) || 'semantic';
 			}
 			if (smartMemoryExtensionEnabled(settings)) {

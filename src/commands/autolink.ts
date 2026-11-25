@@ -6,6 +6,7 @@ import { readSmartMemoryId } from '../bridge/frontmatter';
 import { toMarkdownLinkTarget } from '../util/wikilink-path';
 import { entityNeighbors } from '../bridge/entity-edges';
 import { isPathExcluded } from '../util/exclusions';
+import { resourceWorkspace } from '../bridge/resource-workspace';
 
 export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 	plugin.addCommand({
@@ -26,7 +27,7 @@ export function registerAutolinkCommand(plugin: SmartMemoryPlugin): void {
 
 			const itemId =
 				plugin.mappingStore.getMemoryId(file.path) ??
-				readSmartMemoryId(plugin.app, file, plugin.settings.workspaceId);
+				readSmartMemoryId(plugin.app, file, resourceWorkspace(plugin.settings));
 			if (!itemId) {
 				new Notice('SmartMemory: this note has not been ingested yet');
 				return;

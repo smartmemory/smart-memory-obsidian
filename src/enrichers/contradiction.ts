@@ -3,6 +3,7 @@ import type SmartMemoryPlugin from '../main';
 import { readSmartMemoryId } from '../bridge/frontmatter';
 import { LineageModal } from '../views/lineage-modal';
 import { isPathExcluded } from '../util/exclusions';
+import { resourceWorkspace } from '../bridge/resource-workspace';
 
 const BANNER_CLASS = 'smartmemory-contradiction-banner';
 
@@ -66,7 +67,7 @@ export class ContradictionBanner {
 		}
 		const itemId =
 			this.plugin.mappingStore.getMemoryId(file.path) ??
-			readSmartMemoryId(this.plugin.app, file, this.plugin.settings.workspaceId);
+			readSmartMemoryId(this.plugin.app, file, resourceWorkspace(this.plugin.settings));
 
 		if (!itemId) {
 			this.clearBannerOnLeaf(view.leaf);

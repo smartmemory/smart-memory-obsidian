@@ -2,6 +2,13 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+- **Lite mode: saves no longer report "auto-ingest failed" or pile up copies** (BUG-OBSIDIAN-LITE-SAVE-RECEIPT-1). Needs a SmartMemory Lite with the matching fix: Lite now answers each save with a 2.0 receipt, so the note is mapped, an edit replaces the old copy, and an unchanged note is not uploaded again.
+- **Lite mode: the note id and entities are written to frontmatter.** With no workspace id in Lite mode the `resource` write failed silently. The plugin now uses the Lite install's OKF namespace from `/health` (kept in memory only, never saved as your workspace id). A Lite that does not report one gives a clear error.
+- **Frontmatter and enrichment write errors are shown.** They were logged only; they now show a notice (at most one every 10 seconds). Save errors that already showed a notice are not shown twice.
+
 ## 2.0.7 - 2026-11-25
 
 Matches SmartMemory 2.0.7. No plugin code changes since 2.0.6.

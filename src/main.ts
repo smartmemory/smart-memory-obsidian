@@ -30,6 +30,7 @@ import { OnboardingModal, showFirstIngestTour } from './views/onboarding-modal';
 import { DEFAULT_SETTINGS, EMPTY_MAPPINGS, SmartMemorySettings, PluginData } from './types';
 import { UPGRADE_URL } from './util/quota-errors';
 import { isPathExcluded } from './util/exclusions';
+import { resourceWorkspace, resetLiteNamespace, setLiteNamespace } from './bridge/resource-workspace';
 
 export default class SmartMemoryPlugin extends Plugin {
 	settings: SmartMemorySettings = DEFAULT_SETTINGS;
@@ -235,6 +236,7 @@ export default class SmartMemoryPlugin extends Plugin {
 
 	private initClient(): void {
 		this.clientGeneration += 1;
+		resetLiteNamespace(); // the endpoint may have changed; the next /health probe sets it again
 		// Cloud requires an API key; lite connects keyless (the daemon reports
 		// auth:false). See resolveClientConfig — DIST-OBSIDIAN-LITE-PARITY-1.
 		const decision = resolveClientConfig({
@@ -312,6 +314,11 @@ export default class SmartMemoryPlugin extends Plugin {
 					this.statusBar?.setLastSync(new Date());
 				} else if (event.type === 'enrichment-timeout') {
 					this.surfaceEnrichmentTimeout(event.path);
+				} else if (event.type === 'ingest-error' && !event.thrown) {
+					// BUG-OBSIDIAN-LITE-SAVE-RECEIPT-1: errors the caller never sees (frontmatter and
+					// enrichment writes, unmatched ids) were dropped here. A thrown save error is
+					// already shown by its caller, so only the non-thrown ones get a notice.
+					this.surfaceIngestError(event.path, event.error);
 				}
 			},
 		});
@@ -322,6 +329,17 @@ export default class SmartMemoryPlugin extends Plugin {
 	 * extractions (LLM rate-limit, queue) outrun the 12s poll budget; the
 	 * retry path re-runs only the enrichment poll, not full ingest.
 	 */
+	private lastIngestErrorNoticeAt = 0;
+
+	/** One notice per 10 s at most, so a batch of failing notes does not stack notices; each is logged. */
+	private surfaceIngestError(path: string, error: string): void {
+		console.warn('[smartmemory] ingest error', path, error);
+		const now = Date.now();
+		if (now - this.lastIngestErrorNoticeAt < 10_000) return;
+		this.lastIngestErrorNoticeAt = now;
+		new Notice(`SmartMemory: ${path}: ${error}`, 8000);
+	}
+
 	private surfaceEnrichmentTimeout(path: string): void {
 		const fragment = document.createDocumentFragment();
 		const text = document.createElement('span');
@@ -392,6 +410,7 @@ export default class SmartMemoryPlugin extends Plugin {
 			// cloud (would briefly surface API-key field, billing modal, etc.).
 			if (result.probed) {
 				this.isLite = result.isLite;
+				setLiteNamespace(result.okfNamespace);
 				// Capture the capability map so panels can degrade explicitly
 				// (DIST-OBSIDIAN-LITE-PARITY-1). Refresh open panels if the
 				// availability picture changed, so a panel that opened before
@@ -520,7 +539,7 @@ export default class SmartMemoryPlugin extends Plugin {
 		let changed = 0;
 		for (const file of files) {
 			if (isPathExcluded(file.path, this.settings, 'mapping-backfill')) continue;
-			const id = readSmartMemoryId(this.app, file, this.settings.workspaceId);
+			const id = readSmartMemoryId(this.app, file, resourceWorkspace(this.settings));
 			if (!id) continue;
 			const known = this.mappingStore.getMemoryId(file.path);
 			if (known === id) continue;
@@ -550,7 +569,7 @@ export default class SmartMemoryPlugin extends Plugin {
 				'smartmemory_last_sync',
 			].some(key => Object.prototype.hasOwnProperty.call(fm, key))) continue;
 			await this.app.fileManager.processFrontMatter(file, (fm) => {
-				migrateLegacyFrontmatter(fm, this.settings.workspaceId);
+				migrateLegacyFrontmatter(fm, resourceWorkspace(this.settings));
 			});
 		}
 	}

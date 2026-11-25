@@ -30,6 +30,8 @@ export interface HealthProbeResult {
 	isLite: boolean;
 	mode: HealthMode | null;
 	capabilities: HealthCapabilities | null;
+	/** Lite only: the install's OKF namespace (`okf_namespace`), the workspace of its `smartmemory://` resources. */
+	okfNamespace: string | null;
 	probed: boolean; // false if probe failed
 }
 
@@ -59,7 +61,7 @@ export async function probeHealth(baseUrl: string): Promise<HealthProbeResult> {
 	try {
 		const resp = await requestUrl({ url, method: 'GET' });
 		if (resp.status !== 200) {
-			return { isLite: false, mode: null, capabilities: null, probed: false };
+			return { isLite: false, mode: null, capabilities: null, okfNamespace: null, probed: false };
 		}
 		const body = (resp.json || {}) as Partial<HealthResponse>;
 		// Validate mode against the known union — daemon evolutions could
@@ -71,14 +73,16 @@ export async function probeHealth(baseUrl: string): Promise<HealthProbeResult> {
 				? rawMode
 				: null;
 		const caps = (body.capabilities as HealthCapabilities | undefined) ?? null;
+		const okfNamespace = typeof body.okf_namespace === 'string' && body.okf_namespace ? body.okf_namespace : null;
 		return {
 			isLite: mode === 'lite',
 			mode,
 			capabilities: caps,
+			okfNamespace,
 			probed: true,
 		};
 	} catch {
 		// Network failure, requestUrl threw on non-2xx, etc.
-		return { isLite: false, mode: null, capabilities: null, probed: false };
+		return { isLite: false, mode: null, capabilities: null, okfNamespace: null, probed: false };
 	}
 }

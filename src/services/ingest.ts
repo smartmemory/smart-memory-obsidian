@@ -6,11 +6,13 @@ import { writeSmartMemoryFrontmatter, readSmartMemoryId } from '../bridge/frontm
 import { parseOkf, type OkfDocument } from '../bridge/okf';
 import { isPathExcluded } from '../util/exclusions';
 import { readSaveReceipt, type SavedItem } from './save-receipt';
+import { resourceWorkspace } from '../bridge/resource-workspace';
 
 export type IngestEvent =
 	| { type: 'ingest-start'; path: string }
 	| { type: 'ingest-complete'; path: string; itemId: string }
-	| { type: 'ingest-error'; path: string; error: string }
+	/** `thrown`: the error is also thrown to the caller, which shows it; otherwise only this event carries it. */
+	| { type: 'ingest-error'; path: string; error: string; thrown?: boolean }
 	| { type: 'enrichment-start'; path: string; itemId: string }
 	| { type: 'enrichment-complete'; path: string; itemId: string }
 	| { type: 'enrichment-timeout'; path: string; itemId: string }
@@ -177,7 +179,7 @@ export class IngestService {
 			}
 			const newHash = hashContent(content);
 			const oldHash = this.store.getContentHash(file.path);
-			const existingId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, this.settings.workspaceId);
+			const existingId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, resourceWorkspace(this.settings));
 
 			let itemId: string;
 			let saved: SavedItem | undefined;
@@ -294,7 +296,7 @@ export class IngestService {
 			return adopted ? { itemId, adopted } : { itemId };
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			this.emit({ type: 'ingest-error', path: file.path, error: message });
+			this.emit({ type: 'ingest-error', path: file.path, error: message, thrown: true });
 			throw err;
 		}
 	}
@@ -312,7 +314,7 @@ export class IngestService {
 	async enrichFile(file: TFile): Promise<void> {
 		const excluded = () => isPathExcluded(file.path, this.settings, 'enrichment');
 		if (excluded()) return;
-		const itemId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, this.settings.workspaceId);
+		const itemId = this.store.getMemoryId(file.path) ?? readSmartMemoryId(this.app, file, resourceWorkspace(this.settings));
 		if (!itemId) {
 			console.warn('[smartmemory] enrichFile skipped — no itemId for', file.path);
 			return;
