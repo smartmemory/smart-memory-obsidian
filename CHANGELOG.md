@@ -2,6 +2,10 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## 2.0.7 - 2026-11-25
+
+Matches SmartMemory 2.0.7. No plugin code changes since 2.0.6.
+
 ## 2.0.6 - 2026-11-25
 
 First GitHub release since 0.2.18. The plugin version now equals the SmartMemory core release it ships with (core 2.0.6). Prepared for Obsidian's Community directory (OBSIDIAN-RELEASE-SYNC-SUBMIT-1).
