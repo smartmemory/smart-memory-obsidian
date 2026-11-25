@@ -2,6 +2,10 @@
 
 All notable changes to the SmartMemory Obsidian plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## Unreleased
+
+- UI-ORIGIN-UNKNOWN-NEUTRAL-1 (2026-11-25, user-visible): a search result with an unknown origin no longer gets the red dashed badge or the "likely a server-side propagation bug" tooltip. It shows `unknown` like any other origin. The embedded graph view follows the `@smartmemory/graph` change of the same name (no red border or red text for unknown). No data, filter or tier logic changed.
+
 ## 2.0.7 - 2026-11-25
 
 Matches SmartMemory 2.0.7. No plugin code changes since 2.0.6.
