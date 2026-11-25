@@ -5,6 +5,7 @@ import { GraphExplorer } from '@smartmemory/graph';
 import { createSDKAdapter } from '@smartmemory/graph/src/adapters/sdkAdapter';
 import type SmartMemoryPlugin from '../main';
 import { readSmartMemoryId } from '../bridge/frontmatter';
+import { resourceWorkspace } from '../bridge/resource-workspace';
 
 export const GRAPH_VIEW_TYPE = 'smartmemory-graph';
 
@@ -168,7 +169,7 @@ export class GraphView extends ItemView {
 		if (!file) return null;
 		return (
 			this.plugin.mappingStore.getMemoryId(file.path)
-			?? readSmartMemoryId(this.plugin.app, file, this.plugin.settings.workspaceId)
+			?? readSmartMemoryId(this.plugin.app, file, resourceWorkspace(this.plugin.settings))
 		);
 	}
 
