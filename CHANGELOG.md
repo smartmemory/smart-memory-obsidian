@@ -13,6 +13,7 @@ First GitHub release since 0.2.18. The plugin version now equals the SmartMemory
 - Graph pane, status-bar menu and the enrichment "Retry" link take their layout from `styles.css` classes instead of inline styles, so themes can restyle them.
 - Routine progress logging moved from `console.log` to `console.debug`. Errors and warnings are unchanged.
 - Manifest description rewritten to the directory's rules (short, ends with a period, no special characters).
+- Release step for the SmartMemory cut: `scripts/release.sh <x.y.z> --notes <file> [--dry-run]` builds, checks the SDK build is clean and `styles.css` matches the commit, and creates the GitHub release tagged `<x.y.z>` with `main.js`, `manifest.json` and `styles.css`.
 - Versioning: `scripts/set-version.mjs <x.y.z>` sets `manifest.json`, `package.json` and `versions.json` together. The pre-commit hook now only checks that the three agree (`--check`). The old per-commit patch bump (`scripts/bump-patch.mjs`) is removed, since it moved the version away from the core release.
 
 ### Verified

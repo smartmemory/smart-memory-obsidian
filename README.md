@@ -135,7 +135,18 @@ which updates `manifest.json`, `package.json` and `versions.json` together. The
 pre-commit hook runs `node scripts/set-version.mjs --check` and refuses a commit
 where the three disagree. Obsidian installs the GitHub release whose tag equals
 the `manifest.json` version exactly (no `v` prefix), with `main.js`,
-`manifest.json` and `styles.css` attached. Dependency versions and the graph checkout still need to
+`manifest.json` and `styles.css` attached.
+
+At a SmartMemory release cut, after the version commit is on `main`:
+
+```sh
+SMARTMEMORY_SDK_PATH=/path/to/clean/smart-memory-sdk-js \
+  scripts/release.sh 2.0.7 --notes release-notes.md   # add --dry-run to rehearse
+```
+
+It refuses a version mismatch, an existing tag, a commit not on `origin/main`,
+a dirty SDK build, or a build that changes the committed `styles.css`, then
+creates the GitHub release with the three assets. Dependency versions and the graph checkout still need to
 be held constant for byte-identical builds.
 
 Run the focused build regression with the same environment variables:
